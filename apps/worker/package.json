@@ -1,0 +1,16 @@
+{
+  "name": "@grantledger/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b",
+    "test": "node -e \"console.log('No tests yet: @grantledger/worker')\""
+  },
+  "dependencies": {
+    "@grantledger/shared": "0.1.0",
+    "@grantledger/contracts": "0.1.0",
+    "@grantledger/domain": "0.1.0",
+    "@grantledger/application": "0.1.0"
+  }
+}
