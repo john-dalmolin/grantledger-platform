@@ -3,6 +3,13 @@
     "target": "ES2022",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    "baseUrl": ".",
+    "paths": {
+      "@grantledger/shared": ["packages/shared/src"],
+      "@grantledger/contracts": ["packages/contracts/src"],
+      "@grantledger/domain": ["packages/domain/src"],
+      "@grantledger/application": ["packages/application/src"]
+    },
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
