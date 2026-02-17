@@ -1,163 +1,174 @@
-# grantledger-platform
+# GrantLedger Platform
 
-API-first multi-tenant SaaS billing and entitlements platform built with Node.js + TypeScript in a monorepo architecture.
+A production-oriented TypeScript monorepo for a multi-tenant grants, billing, and entitlements platform.
 
-## 1) Project Overview
+## Why this project exists
 
-`grantledger-platform` is a backend-focused platform designed to support SaaS products that need:
+GrantLedger is built to solve a common real-world problem: evolving critical billing and access-control flows without creating long-term architectural debt.
 
-- tenant-aware access control
-- subscription and billing lifecycle management
-- entitlement-based feature access
-- idempotent financial operations
-- maintainable architecture for long-term scale
+The repository prioritizes:
 
-This repository is intentionally built with production-grade engineering practices, prioritizing correctness, traceability, and architectural clarity.
+- clean boundaries between domain logic and infrastructure
+- predictable delivery through issue-driven increments
+- strict typing and quality gates for safer refactoring
+- low coupling to external providers
 
-## 2) Problem Statement
+## Current scope
 
-Most SaaS backends fail over time due to:
+Delivered milestones:
 
-- business rules spread across transport/infrastructure layers
-- weak tenant isolation and access context
-- no clear boundaries between billing, entitlements, and identity
-- missing safeguards for retries and duplicate operations (idempotency)
-- poor delivery discipline (inconsistent branching, low-quality gates)
+- GL-001: Monorepo bootstrap and engineering baseline
+- GL-002: Authentication, memberships, and tenant request context
+- GL-003: Idempotency-key baseline for write operations
+- GL-004: Payment provider abstraction baseline
 
-This project addresses those risks from the foundation.
+## Architecture principles
 
-## 3) Core Principles
+- Domain-first: core business rules stay framework-agnostic
+- Ports/adapters: external integrations are injected behind interfaces
+- Explicit contracts: shared types are centralized and versioned in the monorepo
+- Incremental evolution: each issue adds capability without breaking previous boundaries
 
-- **API-first**: contracts and behavior are designed before adapters.
-- **Tenant-first security**: every protected flow is tenant-context aware.
-- **Domain-driven boundaries**: business rules are isolated from delivery mechanisms.
-- **Reliability by design**: idempotency and payment abstraction are first-class concerns.
-- **Engineering discipline**: strict typing, quality gates, ADR-driven decisions.
+Dependency direction:
 
-## 4) Architecture
+- packages/domain -> no framework dependency
+- packages/application -> depends on packages/domain and packages/contracts
+- apps/* -> depend on packages/application and packages/contracts
 
-The codebase is structured as a TypeScript monorepo with clear package boundaries:
+## Repository layout
 
-```text
-grantledger-platform
-├── apps
-│   ├── api        # HTTP/API adapter
-│   ├── worker     # async/background processing
-│   └── admin      # admin-facing app shell
-├── packages
-│   ├── domain      # core business entities, invariants, rules
-│   ├── application # use cases and orchestration
-│   ├── contracts   # shared interfaces and cross-layer contracts
-│   └── shared      # shared utilities and primitives
-├── docs
-│   └── adr         # architecture decision records
-├── package.json
-├── tsconfig.base.json
-└── tsconfig.json
-```
+Project root:
 
-### 4.1 Layer Responsibilities
+- /Users/johndalmolin/Downloads/projetos/backend/nodejs/grantledger-platform
 
-- `domain`: pure business logic, no transport/framework coupling
-- `application`: executes use cases using domain + contracts
-- `contracts`: stable language between modules and adapters
-- `apps/api`: maps HTTP concerns to application use cases
+Main folders:
 
-## 5) Current Milestones
+- /Users/johndalmolin/Downloads/projetos/backend/nodejs/grantledger-platform/apps/api
+- /Users/johndalmolin/Downloads/projetos/backend/nodejs/grantledger-platform/apps/worker
+- /Users/johndalmolin/Downloads/projetos/backend/nodejs/grantledger-platform/apps/admin
+- /Users/johndalmolin/Downloads/projetos/backend/nodejs/grantledger-platform/packages/contracts
+- /Users/johndalmolin/Downloads/projetos/backend/nodejs/grantledger-platform/packages/domain
+- /Users/johndalmolin/Downloads/projetos/backend/nodejs/grantledger-platform/packages/application
+- /Users/johndalmolin/Downloads/projetos/backend/nodejs/grantledger-platform/packages/shared
+- /Users/johndalmolin/Downloads/projetos/backend/nodejs/grantledger-platform/docs/adr
 
-- **GL-001** - Bootstrap monorepo and engineering baseline (done)
-- **GL-002** - Auth, memberships, and tenant context (in progress/review)
-- Next:
-  - GL-003 idempotency key flow
-  - GL-004 payment provider abstraction
-  - GL-005 subscription lifecycle orchestration
+## Implemented behavior baselines
 
-## 6) Key Technical Decisions (ADRs)
+Auth + tenant context (GL-002):
 
-Architectural decisions are documented in:
+- missing authenticated user -> 401
+- missing tenant context/header -> 400
+- no active membership for tenant -> 403
+- valid context -> 200
 
-- `docs/adr/ADR-001-tenancy-model.md`
-- `docs/adr/ADR-002-entitlements-model.md`
-- `docs/adr/ADR-003-idempotency.md`
-- `docs/adr/ADR-004-payment-provider-abstraction.md`
+Idempotent writes (GL-003):
 
-These ADRs define trade-offs and rationale for core platform decisions.
+- missing idempotency key -> 400
+- first successful write -> 201
+- replay with same key and same payload -> 200
+- same key with different payload -> 409
 
-## 7) Engineering Standards
+Payment abstraction (GL-004):
 
-- TypeScript `strict` mode
-- Project references in monorepo
-- ESLint quality gate
-- Build/typecheck as merge requirements
-- Feature branches + squash merge
-- Issue-first planning and project tracking
+- application layer depends on provider interface, not vendor SDK
+- fake provider validates flow and contract behavior
+- path prepared for real provider integration with minimal core impact
 
-## 8) Local Setup
+## Tech stack
 
-### 8.1 Requirements
+- Node.js 22.x
+- TypeScript with strict mode
+- exactOptionalPropertyTypes enabled
+- npm workspaces
+- ESLint
+- project references (tsc -b)
 
-- Node.js `>=22 <23`
-- npm `>=10 <11`
+## Getting started
 
-### 8.2 Install
+Prerequisites:
 
-```bash
-npm install
-```
+- Node.js >= 22
+- npm >= 10
 
-### 8.3 Quality Gates
+Install dependencies:
 
-```bash
-npm run typecheck
-npm run build
-npm run lint
-npm run test
-```
+- npm ci
 
-## 9) Git Workflow
+Run quality gates:
 
-### 9.1 Branching
+- npm run typecheck
+- npm run build
+- npm run lint
 
-- one issue = one branch = one PR
-- start from updated `main`
-- no direct commits to `main`
+## Development workflow
 
-Branch naming examples:
+Branching standard:
 
-- `feat/gl-002-auth-tenant-context`
-- `fix/<issue>-<slug>`
-- `chore/<issue>-<slug>`
+- feat/`<issue>`-`<slug>`
+- fix/`<issue>`-`<slug>`
+- chore/`<issue>`-`<slug>`
 
-### 9.2 Merge Policy
+Merge strategy:
 
-- squash merge for clean history and issue-level traceability
+- Squash and Merge
 
-## 10) Reliability & Security Notes
+Operational rules:
 
-- tenant context resolution is mandatory for protected operations
-- membership validation drives authorization decisions
-- write operations with financial impact will use idempotency keys
-- provider integrations are isolated behind abstraction boundaries
+- 1 issue = 1 branch = 1 PR
+- no direct commits to main
+- keep PR scope aligned to one issue
+- keep diffs focused and reviewable
 
-## 11) Interview-Ready Talking Points
+## Quality and review checklist
 
-This project demonstrates ability to:
+Before opening or merging a PR:
 
-- design backend architecture from product constraints
-- enforce modular boundaries in a monorepo
-- turn business requirements into technical contracts
-- document architectural decisions with ADRs
-- evolve incrementally with production-minded discipline
+- typecheck passes
+- build passes
+- lint passes
+- architecture boundaries remain respected
+- risks and trade-offs are documented in PR description
 
-## 12) Roadmap
+## ADRs (Architecture Decision Records)
 
-- [x] GL-003: idempotency key baseline in write endpoints
-- [ ] GL-004: payment provider abstraction (anti-corruption layer)
-- [ ] GL-005: subscription state transitions and lifecycle rules
-- [ ] GL-006: entitlement evaluation middleware
-- [ ] GL-007: observability, audit, and failure tracing
+Location:
 
-## 13) Repository Metadata (Recommended)
+- /Users/johndalmolin/Downloads/projetos/backend/nodejs/grantledger-platform/docs/adr
 
-- **Description**: API-first multi-tenant SaaS billing and entitlements platform built with Node.js + TypeScript monorepo architecture.
-- **Topics**: `saas`, `billing`, `entitlements`, `multi-tenant`, `typescript`, `nodejs`, `monorepo`, `api-first`, `ddd`, `clean-architecture`, `idempotency`, `payments`
+ADRs are required when a decision has long-term architectural impact.
+
+## Project links
+
+- Repository: https://github.com/john-dalmolin/grantledger-platform
+- Board: https://github.com/users/john-dalmolin/projects/6
+
+## Important talking points
+
+This project demonstrates practical senior-level concerns:
+
+- clean architecture in a real monorepo
+- business-critical idempotency modeling
+- multi-tenant authorization context enforcement
+- integration-ready payment abstraction
+- disciplined issue-to-PR delivery process
+
+## Roadmap
+
+- Integrate real payment provider adapter
+- Add webhook handling and reconciliation flows
+- Expand test coverage by layer (domain/application/adapters)
+- Strengthen observability and security controls
+- Document operational runbooks for incidents
+
+## Contributing
+
+Contributions should follow the issue-driven workflow and pass all quality gates before review.
+
+## README structure references
+
+This README structure follows guidance from:
+
+- https://docs.github.com/en/enterprise-cloud@latest/repositories/creating-and-managing-repositories/best-practices-for-repositories
+- https://google.github.io/styleguide/docguide/READMEs.html
+- https://google.github.io/styleguide/docguide/style.html
+- https://www.makeareadme.com/
