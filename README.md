@@ -1,163 +1,127 @@
-# grantledger-platform
+# GrantLedger Platform
 
-API-first multi-tenant SaaS billing and entitlements platform built with Node.js + TypeScript in a monorepo architecture.
+Monorepo TypeScript para uma plataforma SaaS multi-tenant de grants, billing e entitlements, construída com foco em arquitetura limpa, baixo acoplamento e evolução orientada por issues.
 
-## 1) Project Overview
+## Objetivo
 
-`grantledger-platform` is a backend-focused platform designed to support SaaS products that need:
+Construir uma base técnica sólida para operações críticas de assinatura e controle de acesso por tenant, com previsibilidade de entrega e qualidade de engenharia.
 
-- tenant-aware access control
-- subscription and billing lifecycle management
-- entitlement-based feature access
-- idempotent financial operations
-- maintainable architecture for long-term scale
+## Estado atual
 
-This repository is intentionally built with production-grade engineering practices, prioritizing correctness, traceability, and architectural clarity.
+- GL-001: bootstrap do monorepo e baseline de engenharia
+- GL-002: auth, memberships e tenant request context
+- GL-003: baseline de idempotência para operações de escrita
+- GL-004: abstração inicial de payment provider
 
-## 2) Problem Statement
+## Arquitetura
 
-Most SaaS backends fail over time due to:
+Princípios adotados:
 
-- business rules spread across transport/infrastructure layers
-- weak tenant isolation and access context
-- no clear boundaries between billing, entitlements, and identity
-- missing safeguards for retries and duplicate operations (idempotency)
-- poor delivery discipline (inconsistent branching, low-quality gates)
+- Domain-first: regras de negócio no core, sem dependência de framework
+- Ports and adapters: integrações externas entram por abstrações
+- Contratos explícitos entre camadas para reduzir acoplamento
+- Evolução incremental com rastreabilidade via ADR e board
 
-This project addresses those risks from the foundation.
+Dependências por camada:
 
-## 3) Core Principles
+- `packages/domain`: não depende de framework
+- `packages/application`: depende de `domain` e `contracts`
+- `apps/*`: dependem de `application` e `contracts`
 
-- **API-first**: contracts and behavior are designed before adapters.
-- **Tenant-first security**: every protected flow is tenant-context aware.
-- **Domain-driven boundaries**: business rules are isolated from delivery mechanisms.
-- **Reliability by design**: idempotency and payment abstraction are first-class concerns.
-- **Engineering discipline**: strict typing, quality gates, ADR-driven decisions.
+## Estrutura do monorepo
 
-## 4) Architecture
+Raiz do projeto:
+`/Users/johndalmolin/Downloads/projetos/backend/nodejs/grantledger-platform`
 
-The codebase is structured as a TypeScript monorepo with clear package boundaries:
+- `apps/api` -> adapter HTTP e composição dos casos de uso
+- `apps/worker` -> processamento assíncrono (baseline)
+- `apps/admin` -> aplicação administrativa (baseline)
+- `packages/contracts` -> tipos e contratos compartilhados
+- `packages/domain` -> entidades e políticas de domínio
+- `packages/application` -> casos de uso
+- `packages/shared` -> utilitários transversais
+- `docs/adr` -> decisões arquiteturais
 
-```text
-grantledger-platform
-├── apps
-│   ├── api        # HTTP/API adapter
-│   ├── worker     # async/background processing
-│   └── admin      # admin-facing app shell
-├── packages
-│   ├── domain      # core business entities, invariants, rules
-│   ├── application # use cases and orchestration
-│   ├── contracts   # shared interfaces and cross-layer contracts
-│   └── shared      # shared utilities and primitives
-├── docs
-│   └── adr         # architecture decision records
-├── package.json
-├── tsconfig.base.json
-└── tsconfig.json
-```
+## Fluxos implementados
 
-### 4.1 Layer Responsibilities
+Auth + Tenant Context (GL-002):
 
-- `domain`: pure business logic, no transport/framework coupling
-- `application`: executes use cases using domain + contracts
-- `contracts`: stable language between modules and adapters
-- `apps/api`: maps HTTP concerns to application use cases
+- sem usuário autenticado -> 401
+- sem tenant informado -> 400
+- sem membership ativa para tenant -> 403
+- contexto válido -> 200
 
-## 5) Current Milestones
+Idempotência (GL-003):
 
-- **GL-001** - Bootstrap monorepo and engineering baseline (done)
-- **GL-002** - Auth, memberships, and tenant context (in progress/review)
-- Next:
-  - GL-003 idempotency key flow
-  - GL-004 payment provider abstraction
-  - GL-005 subscription lifecycle orchestration
+- sem idempotency key -> 400
+- primeira execução válida -> 201
+- replay com mesmo payload -> 200
+- mesma key com payload diferente -> 409
 
-## 6) Key Technical Decisions (ADRs)
+Payment Provider Abstraction (GL-004):
 
-Architectural decisions are documented in:
+- porta de provider definida
+- adapter fake para validar comportamento
+- base pronta para integração real (ex.: Stripe) sem quebrar o core
 
-- `docs/adr/ADR-001-tenancy-model.md`
-- `docs/adr/ADR-002-entitlements-model.md`
-- `docs/adr/ADR-003-idempotency.md`
-- `docs/adr/ADR-004-payment-provider-abstraction.md`
+## Stack técnica
 
-These ADRs define trade-offs and rationale for core platform decisions.
+- Node.js 22.x
+- TypeScript (strict + exactOptionalPropertyTypes + project references)
+- ESLint
+- NPM Workspaces
 
-## 7) Engineering Standards
+## Setup local
 
-- TypeScript `strict` mode
-- Project references in monorepo
-- ESLint quality gate
-- Build/typecheck as merge requirements
-- Feature branches + squash merge
-- Issue-first planning and project tracking
+Pré-requisitos:
 
-## 8) Local Setup
+- Node.js >= 22
+- npm >= 10
 
-### 8.1 Requirements
+Instalação:
 
-- Node.js `>=22 <23`
-- npm `>=10 <11`
+- `npm ci`
 
-### 8.2 Install
+Validação técnica:
 
-```bash
-npm install
-```
+- `npm run typecheck`
+- `npm run build`
+- `npm run lint`
 
-### 8.3 Quality Gates
+## Qualidade e fluxo de trabalho
 
-```bash
-npm run typecheck
-npm run build
-npm run lint
-npm run test
-```
+- 1 issue = 1 branch = 1 PR
+- branches: `feat/*`, `fix/*`, `chore/*`
+- merge: Squash and Merge
+- sem commit direto em `main`
 
-## 9) Git Workflow
+Checklist mínimo para merge:
 
-### 9.1 Branching
+- escopo aderente à issue
+- diff focado e sem ruído
+- typecheck/build/lint verdes
+- riscos e decisões documentados no PR
 
-- one issue = one branch = one PR
-- start from updated `main`
-- no direct commits to `main`
+## Documentação de arquitetura
 
-Branch naming examples:
+ADRs em:
+`/Users/johndalmolin/Downloads/projetos/backend/nodejs/grantledger-platform/docs/adr`
 
-- `feat/gl-002-auth-tenant-context`
-- `fix/<issue>-<slug>`
-- `chore/<issue>-<slug>`
+## Links
 
-### 9.2 Merge Policy
+- Repositório: https://github.com/john-dalmolin/grantledger-platform
+- Board: https://github.com/users/john-dalmolin/projects/6
 
-- squash merge for clean history and issue-level traceability
+## Destaques para entrevista técnica
 
-## 10) Reliability & Security Notes
+- aplicação de Clean Architecture em projeto real
+- boundaries explícitos entre camadas
+- modelagem de idempotência e contexto multi-tenant
+- abstração de payment provider com baixo acoplamento
 
-- tenant context resolution is mandatory for protected operations
-- membership validation drives authorization decisions
-- write operations with financial impact will use idempotency keys
-- provider integrations are isolated behind abstraction boundaries
+## Próximos passos
 
-## 11) Interview-Ready Talking Points
-
-This project demonstrates ability to:
-
-- design backend architecture from product constraints
-- enforce modular boundaries in a monorepo
-- turn business requirements into technical contracts
-- document architectural decisions with ADRs
-- evolve incrementally with production-minded discipline
-
-## 12) Roadmap
-
-- [x] GL-003: idempotency key baseline in write endpoints
-- [ ] GL-004: payment provider abstraction (anti-corruption layer)
-- [ ] GL-005: subscription state transitions and lifecycle rules
-- [ ] GL-006: entitlement evaluation middleware
-- [ ] GL-007: observability, audit, and failure tracing
-
-## 13) Repository Metadata (Recommended)
-
-- **Description**: API-first multi-tenant SaaS billing and entitlements platform built with Node.js + TypeScript monorepo architecture.
-- **Topics**: `saas`, `billing`, `entitlements`, `multi-tenant`, `typescript`, `nodejs`, `monorepo`, `api-first`, `ddd`, `clean-architecture`, `idempotency`, `payments`
+- integrar provider real com webhook handling
+- adicionar suíte de testes automatizados por camada
+- evoluir observabilidade, retries e reconciliação
+- hardening de segurança e controles operacionais
