@@ -1,127 +1,174 @@
 # GrantLedger Platform
 
-Monorepo TypeScript para uma plataforma SaaS multi-tenant de grants, billing e entitlements, construída com foco em arquitetura limpa, baixo acoplamento e evolução orientada por issues.
+A production-oriented TypeScript monorepo for a multi-tenant grants, billing, and entitlements platform.
 
-## Objetivo
+## Why this project exists
 
-Construir uma base técnica sólida para operações críticas de assinatura e controle de acesso por tenant, com previsibilidade de entrega e qualidade de engenharia.
+GrantLedger is built to solve a common real-world problem: evolving critical billing and access-control flows without creating long-term architectural debt.
 
-## Estado atual
+The repository prioritizes:
 
-- GL-001: bootstrap do monorepo e baseline de engenharia
-- GL-002: auth, memberships e tenant request context
-- GL-003: baseline de idempotência para operações de escrita
-- GL-004: abstração inicial de payment provider
+- clean boundaries between domain logic and infrastructure
+- predictable delivery through issue-driven increments
+- strict typing and quality gates for safer refactoring
+- low coupling to external providers
 
-## Arquitetura
+## Current scope
 
-Princípios adotados:
+Delivered milestones:
 
-- Domain-first: regras de negócio no core, sem dependência de framework
-- Ports and adapters: integrações externas entram por abstrações
-- Contratos explícitos entre camadas para reduzir acoplamento
-- Evolução incremental com rastreabilidade via ADR e board
+- GL-001: Monorepo bootstrap and engineering baseline
+- GL-002: Authentication, memberships, and tenant request context
+- GL-003: Idempotency-key baseline for write operations
+- GL-004: Payment provider abstraction baseline
 
-Dependências por camada:
+## Architecture principles
 
-- `packages/domain`: não depende de framework
-- `packages/application`: depende de `domain` e `contracts`
-- `apps/*`: dependem de `application` e `contracts`
+- Domain-first: core business rules stay framework-agnostic
+- Ports/adapters: external integrations are injected behind interfaces
+- Explicit contracts: shared types are centralized and versioned in the monorepo
+- Incremental evolution: each issue adds capability without breaking previous boundaries
 
-## Estrutura do monorepo
+Dependency direction:
 
-Raiz do projeto:
-`/Users/johndalmolin/Downloads/projetos/backend/nodejs/grantledger-platform`
+- packages/domain -> no framework dependency
+- packages/application -> depends on packages/domain and packages/contracts
+- apps/* -> depend on packages/application and packages/contracts
 
-- `apps/api` -> adapter HTTP e composição dos casos de uso
-- `apps/worker` -> processamento assíncrono (baseline)
-- `apps/admin` -> aplicação administrativa (baseline)
-- `packages/contracts` -> tipos e contratos compartilhados
-- `packages/domain` -> entidades e políticas de domínio
-- `packages/application` -> casos de uso
-- `packages/shared` -> utilitários transversais
-- `docs/adr` -> decisões arquiteturais
+## Repository layout
 
-## Fluxos implementados
+Project root:
 
-Auth + Tenant Context (GL-002):
+- /Users/johndalmolin/Downloads/projetos/backend/nodejs/grantledger-platform
 
-- sem usuário autenticado -> 401
-- sem tenant informado -> 400
-- sem membership ativa para tenant -> 403
-- contexto válido -> 200
+Main folders:
 
-Idempotência (GL-003):
+- /Users/johndalmolin/Downloads/projetos/backend/nodejs/grantledger-platform/apps/api
+- /Users/johndalmolin/Downloads/projetos/backend/nodejs/grantledger-platform/apps/worker
+- /Users/johndalmolin/Downloads/projetos/backend/nodejs/grantledger-platform/apps/admin
+- /Users/johndalmolin/Downloads/projetos/backend/nodejs/grantledger-platform/packages/contracts
+- /Users/johndalmolin/Downloads/projetos/backend/nodejs/grantledger-platform/packages/domain
+- /Users/johndalmolin/Downloads/projetos/backend/nodejs/grantledger-platform/packages/application
+- /Users/johndalmolin/Downloads/projetos/backend/nodejs/grantledger-platform/packages/shared
+- /Users/johndalmolin/Downloads/projetos/backend/nodejs/grantledger-platform/docs/adr
 
-- sem idempotency key -> 400
-- primeira execução válida -> 201
-- replay com mesmo payload -> 200
-- mesma key com payload diferente -> 409
+## Implemented behavior baselines
 
-Payment Provider Abstraction (GL-004):
+Auth + tenant context (GL-002):
 
-- porta de provider definida
-- adapter fake para validar comportamento
-- base pronta para integração real (ex.: Stripe) sem quebrar o core
+- missing authenticated user -> 401
+- missing tenant context/header -> 400
+- no active membership for tenant -> 403
+- valid context -> 200
 
-## Stack técnica
+Idempotent writes (GL-003):
+
+- missing idempotency key -> 400
+- first successful write -> 201
+- replay with same key and same payload -> 200
+- same key with different payload -> 409
+
+Payment abstraction (GL-004):
+
+- application layer depends on provider interface, not vendor SDK
+- fake provider validates flow and contract behavior
+- path prepared for real provider integration with minimal core impact
+
+## Tech stack
 
 - Node.js 22.x
-- TypeScript (strict + exactOptionalPropertyTypes + project references)
+- TypeScript with strict mode
+- exactOptionalPropertyTypes enabled
+- npm workspaces
 - ESLint
-- NPM Workspaces
+- project references (tsc -b)
 
-## Setup local
+## Getting started
 
-Pré-requisitos:
+Prerequisites:
 
 - Node.js >= 22
 - npm >= 10
 
-Instalação:
+Install dependencies:
 
-- `npm ci`
+- npm ci
 
-Validação técnica:
+Run quality gates:
 
-- `npm run typecheck`
-- `npm run build`
-- `npm run lint`
+- npm run typecheck
+- npm run build
+- npm run lint
 
-## Qualidade e fluxo de trabalho
+## Development workflow
+
+Branching standard:
+
+- feat/`<issue>`-`<slug>`
+- fix/`<issue>`-`<slug>`
+- chore/`<issue>`-`<slug>`
+
+Merge strategy:
+
+- Squash and Merge
+
+Operational rules:
 
 - 1 issue = 1 branch = 1 PR
-- branches: `feat/*`, `fix/*`, `chore/*`
-- merge: Squash and Merge
-- sem commit direto em `main`
+- no direct commits to main
+- keep PR scope aligned to one issue
+- keep diffs focused and reviewable
 
-Checklist mínimo para merge:
+## Quality and review checklist
 
-- escopo aderente à issue
-- diff focado e sem ruído
-- typecheck/build/lint verdes
-- riscos e decisões documentados no PR
+Before opening or merging a PR:
 
-## Documentação de arquitetura
+- typecheck passes
+- build passes
+- lint passes
+- architecture boundaries remain respected
+- risks and trade-offs are documented in PR description
 
-ADRs em:
-`/Users/johndalmolin/Downloads/projetos/backend/nodejs/grantledger-platform/docs/adr`
+## ADRs (Architecture Decision Records)
 
-## Links
+Location:
 
-- Repositório: https://github.com/john-dalmolin/grantledger-platform
+- /Users/johndalmolin/Downloads/projetos/backend/nodejs/grantledger-platform/docs/adr
+
+ADRs are required when a decision has long-term architectural impact.
+
+## Project links
+
+- Repository: https://github.com/john-dalmolin/grantledger-platform
 - Board: https://github.com/users/john-dalmolin/projects/6
 
-## Destaques para entrevista técnica
+## Talking points
 
-- aplicação de Clean Architecture em projeto real
-- boundaries explícitos entre camadas
-- modelagem de idempotência e contexto multi-tenant
-- abstração de payment provider com baixo acoplamento
+This project demonstrates practical senior-level concerns:
 
-## Próximos passos
+- clean architecture in a real monorepo
+- business-critical idempotency modeling
+- multi-tenant authorization context enforcement
+- integration-ready payment abstraction
+- disciplined issue-to-PR delivery process
 
-- integrar provider real com webhook handling
-- adicionar suíte de testes automatizados por camada
-- evoluir observabilidade, retries e reconciliação
-- hardening de segurança e controles operacionais
+## Roadmap
+
+- Integrate real payment provider adapter
+- Add webhook handling and reconciliation flows
+- Expand test coverage by layer (domain/application/adapters)
+- Strengthen observability and security controls
+- Document operational runbooks for incidents
+
+## Contributing
+
+Contributions should follow the issue-driven workflow and pass all quality gates before review.
+
+## README structure references
+
+This README structure follows guidance from:
+
+- https://docs.github.com/en/enterprise-cloud@latest/repositories/creating-and-managing-repositories/best-practices-for-repositories
+- https://google.github.io/styleguide/docguide/READMEs.html
+- https://google.github.io/styleguide/docguide/style.html
+- https://www.makeareadme.com/
