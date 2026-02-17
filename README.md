@@ -151,7 +151,7 @@ This project demonstrates ability to:
 
 ## 12) Roadmap
 
-- [ ] GL-003: idempotency key baseline in write endpoints
+- [x] GL-003: idempotency key baseline in write endpoints
 - [ ] GL-004: payment provider abstraction (anti-corruption layer)
 - [ ] GL-005: subscription state transitions and lifecycle rules
 - [ ] GL-006: entitlement evaluation middleware
