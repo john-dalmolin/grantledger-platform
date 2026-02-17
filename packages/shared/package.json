@@ -1,0 +1,12 @@
+{
+  "name": "@grantledger/shared",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "test": "node -e \"console.log('No tests yet: @grantledger/shared')\""
+  }
+}
