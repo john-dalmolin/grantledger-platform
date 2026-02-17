@@ -142,7 +142,7 @@ ADRs are required when a decision has long-term architectural impact.
 - Repository: https://github.com/john-dalmolin/grantledger-platform
 - Board: https://github.com/users/john-dalmolin/projects/6
 
-## Talking points
+## Important talking points
 
 This project demonstrates practical senior-level concerns:
 
