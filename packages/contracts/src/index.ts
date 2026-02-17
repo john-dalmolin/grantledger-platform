@@ -23,3 +23,22 @@ export interface IdempotencyRecord<TResponse = unknown> {
   response: TResponse;
   createdAt: string;
 }
+
+export type PaymentProviderName = "fake";
+export type BillingPeriod = "monthly" | "yearly";
+
+export interface CreateCheckoutSessionInput {
+  tenantId: string;
+  planId: string;
+  billingPeriod: BillingPeriod;
+  successUrl: string;
+  cancelUrl: string;
+  externalReference?: string;
+}
+
+export interface CreateCheckoutSessionResult {
+  provider: PaymentProviderName;
+  sessionId: string;
+  checkoutUrl: string;
+  createdAt: string;
+}
