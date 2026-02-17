@@ -2,9 +2,12 @@ import {
   AuthenticationError,
   BadRequestError,
   ForbiddenError,
+  IdempotencyConflictError,
+  MissingIdempotencyKeyError,
+  processWithIdempotency,
   resolveRequestContext,
 } from "@grantledger/application";
-import type { RequestContext } from "@grantledger/contracts";
+import type { IdempotencyRecord, RequestContext } from "@grantledger/contracts";
 import type { Membership } from "@grantledger/domain";
 
 type Headers = Record<string, string | undefined>;
@@ -14,17 +17,35 @@ interface ApiResponse {
   body: unknown;
 }
 
+interface CreateSubscriptionPayload {
+  planId: string;
+  externalReference?: string;
+}
+
+interface CreateSubscriptionResponse {
+  subscriptionId: string;
+  tenantId: string;
+  planId: string;
+  status: "active";
+  createdAt: string;
+}
+
 const membershipStore: Membership[] = [
   { userId: "u_1", tenantId: "t_1", role: "owner", status: "active" },
   { userId: "u_2", tenantId: "t_1", role: "member", status: "inactive" },
 ];
+
+const idempotencyStore = new Map<
+  string,
+  IdempotencyRecord<CreateSubscriptionResponse>
+>();
 
 function getHeader(headers: Headers, key: string): string | null {
   const value = headers[key.toLowerCase()] ?? headers[key];
   return value ?? null;
 }
 
-export function handleProtectedRequest(headers: Headers): ApiResponse {
+function resolveContextFromHeaders(headers: Headers): RequestContext {
   const userId = getHeader(headers, "x-user-id");
   const tenantId = getHeader(headers, "x-tenant-id");
 
@@ -33,12 +54,16 @@ export function handleProtectedRequest(headers: Headers): ApiResponse {
     ? membershipStore.filter((membership) => membership.userId === userId)
     : [];
 
+  return resolveRequestContext({
+    user,
+    tenantId,
+    memberships,
+  });
+}
+
+export function handleProtectedRequest(headers: Headers): ApiResponse {
   try {
-    const context: RequestContext = resolveRequestContext({
-      user,
-      tenantId,
-      memberships,
-    });
+    const context = resolveContextFromHeaders(headers);
 
     return {
       status: 200,
@@ -48,6 +73,69 @@ export function handleProtectedRequest(headers: Headers): ApiResponse {
       },
     };
   } catch (error) {
+    if (error instanceof AuthenticationError) {
+      return { status: 401, body: { message: error.message } };
+    }
+
+    if (error instanceof ForbiddenError) {
+      return { status: 403, body: { message: error.message } };
+    }
+
+    if (error instanceof BadRequestError) {
+      return { status: 400, body: { message: error.message } };
+    }
+
+    return { status: 500, body: { message: "Unexpected error" } };
+  }
+}
+
+export function handleCreateSubscription(
+  headers: Headers,
+  payload: CreateSubscriptionPayload,
+): ApiResponse {
+  try {
+    const context = resolveContextFromHeaders(headers);
+
+    if (!payload.planId) {
+      throw new BadRequestError("planId is required");
+    }
+
+    const idempotencyKey = getHeader(headers, "idempotency-key");
+
+    const { response, replayed } = processWithIdempotency({
+      key: idempotencyKey,
+      payload: {
+        tenantId: context.tenant.id,
+        planId: payload.planId,
+        externalReference: payload.externalReference ?? null,
+      },
+      store: idempotencyStore,
+      execute: () => ({
+        subscriptionId: `sub_${idempotencyStore.size + 1}`,
+        tenantId: context.tenant.id,
+        planId: payload.planId,
+        status: "active",
+        createdAt: new Date().toISOString(),
+      }),
+    });
+
+    return {
+      status: replayed ? 200 : 201,
+      body: {
+        message: replayed ? "Replayed" : "Created",
+        data: response,
+        context,
+      },
+    };
+  } catch (error) {
+    if (error instanceof MissingIdempotencyKeyError) {
+      return { status: 400, body: { message: error.message } };
+    }
+
+    if (error instanceof IdempotencyConflictError) {
+      return { status: 409, body: { message: error.message } };
+    }
+
     if (error instanceof AuthenticationError) {
       return { status: 401, body: { message: error.message } };
     }
