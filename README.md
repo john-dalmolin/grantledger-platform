@@ -156,8 +156,3 @@ This project demonstrates ability to:
 - [ ] GL-005: subscription state transitions and lifecycle rules
 - [ ] GL-006: entitlement evaluation middleware
 - [ ] GL-007: observability, audit, and failure tracing
-
-## 13) Repository Metadata (Recommended)
-
-- **Description**: API-first multi-tenant SaaS billing and entitlements platform built with Node.js + TypeScript monorepo architecture.
-- **Topics**: `saas`, `billing`, `entitlements`, `multi-tenant`, `typescript`, `nodejs`, `monorepo`, `api-first`, `ddd`, `clean-architecture`, `idempotency`, `payments`
