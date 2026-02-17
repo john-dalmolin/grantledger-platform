@@ -125,3 +125,103 @@ export interface CatalogAuditEvent {
   occurredAt: string;
   metadata: Record<string, string>;
 }
+
+// GL-006 - Subscriptions state machine contracts
+
+export type SubscriptionStatus =
+  | "trialing"
+  | "active"
+  | "past_due"
+  | "canceled";
+
+export interface SubscriptionPeriod {
+  startsAt: string;
+  endsAt: string;
+}
+
+export interface Subscription {
+  id: string;
+  tenantId: string;
+  customerId: string;
+  planId: string;
+  status: SubscriptionStatus;
+  currentPeriod: SubscriptionPeriod;
+  cancelAtPeriodEnd: boolean;
+  canceledAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SubscriptionCommandContext {
+  actor: AuditActor;
+  reason: string;
+  traceId: string;
+  requestedAt: string;
+  idempotencyKey: string;
+}
+
+export interface CreateSubscriptionCommandInput {
+  subscriptionId: string;
+  tenantId: string;
+  customerId: string;
+  planId: string;
+  currentPeriod: SubscriptionPeriod;
+  trialEndsAt?: string;
+  context: SubscriptionCommandContext;
+}
+
+export interface UpgradeSubscriptionCommandInput {
+  subscriptionId: string;
+  nextPlanId: string;
+  effectiveAt: string;
+  context: SubscriptionCommandContext;
+}
+
+export interface DowngradeSubscriptionCommandInput {
+  subscriptionId: string;
+  nextPlanId: string;
+  effectiveAt: string;
+  context: SubscriptionCommandContext;
+}
+
+export interface CancelSubscriptionNowCommandInput {
+  subscriptionId: string;
+  canceledAt: string;
+  context: SubscriptionCommandContext;
+}
+
+export interface CancelSubscriptionAtPeriodEndCommandInput {
+  subscriptionId: string;
+  context: SubscriptionCommandContext;
+}
+
+export type SubscriptionDomainEventName =
+  | "subscription.created"
+  | "subscription.upgraded"
+  | "subscription.downgraded"
+  | "subscription.canceled_now"
+  | "subscription.cancel_at_period_end";
+
+export interface SubscriptionDomainEvent {
+  name: SubscriptionDomainEventName;
+  subscriptionId: string;
+  tenantId: string;
+  occurredAt: string;
+  payload: Record<string, string>;
+}
+
+export interface SubscriptionAuditEvent {
+  action:
+    | "subscription.create"
+    | "subscription.upgrade"
+    | "subscription.downgrade"
+    | "subscription.cancel_now"
+    | "subscription.cancel_at_period_end";
+  actor: AuditActor;
+  reason: string;
+  traceId: string;
+  occurredAt: string;
+  subscriptionId: string;
+  tenantId: string;
+  metadata: Record<string, string>;
+}
