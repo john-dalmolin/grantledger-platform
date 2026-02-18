@@ -306,3 +306,42 @@ export interface InvoiceAuditEvent {
   occurredAt: string;
   metadata: Record<string, string>;
 }
+
+// GL-008 - Canonical payments contracts
+
+// export type PaymentProviderName = "stripe";
+
+export type CanonicalPaymentEventType =
+  | "payment.succeeded"
+  | "payment.failed"
+  | "invoice.paid"
+  | "invoice.payment_failed"
+  | "subscription.updated"
+  | "subscription.canceled";
+
+export interface CanonicalPaymentEvent {
+  provider: PaymentProviderName;
+  eventId: string;
+  type: CanonicalPaymentEventType;
+  domainEventVersion: "v1";
+  occurredAt: string;
+  tenantId?: string;
+  subscriptionId?: string;
+  traceId: string;
+  payload: Record<string, string>;
+}
+
+export interface PaymentWebhookEnvelope {
+  provider: PaymentProviderName;
+  rawBody: string;
+  headers: Record<string, string | undefined>;
+  receivedAt: string;
+  traceId: string;
+}
+
+export interface PaymentWebhookProcessResult {
+  status: "processed" | "duplicate" | "rejected";
+  provider: PaymentProviderName;
+  eventId?: string;
+  reason?: string;
+}

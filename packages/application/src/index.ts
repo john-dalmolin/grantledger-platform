@@ -2,7 +2,6 @@ import type {
   AuthenticatedUser,
   IdempotencyRecord,
   RequestContext,
-  PaymentProviderName,
   BillingPeriod,
   CreateCheckoutSessionInput,
   CreateCheckoutSessionResult,
@@ -16,6 +15,10 @@ import type {
   Plan,
   PlanVersion,
   PublishPlanVersionInput,
+  PaymentProviderName,
+  CanonicalPaymentEvent,
+  PaymentWebhookEnvelope,
+  PaymentWebhookProcessResult,
 } from "@grantledger/contracts";
 import {
   hasActiveMembershipForTenant,
@@ -472,7 +475,6 @@ export async function createSubscription(
         throw new SubscriptionConflictError("Subscription already exists");
       }
 
-      // The aggregate will perform all necessary validations in the constructor and throw if something is wrong with the input, which will prevent us from creating the subscription or publishing the event if the input is invalid
       const result = createSubscriptionAggregate({
         subscriptionId: input.subscriptionId,
         tenantId: input.tenantId,
@@ -481,11 +483,10 @@ export async function createSubscription(
         currentPeriod: input.currentPeriod,
         ...(input.trialEndsAt !== undefined
           ? { trialEndsAt: input.trialEndsAt }
-          : {}), // trialEndsAt is optional, so we only include it if it's defined
+          : {}),
         occurredAt: input.context.requestedAt,
       });
 
-      // We need to create the subscription before publishing the event to ensure that the subscription exists when the event is processed, otherwise we might end up with an event that references a non-existent subscription if the event is processed before the subscription is created
       await deps.repository.create(result.next);
       await deps.eventPublisher.publish(result.event);
       await audit(deps, {
@@ -644,4 +645,128 @@ export async function cancelSubscriptionAtPeriodEnd(
       return result.next;
     },
   );
+}
+
+export interface PaymentWebhookDeps {
+  provider: PaymentWebhookProvider;
+  dedupStore: WebhookDedupStore;
+  auditStore: WebhookAuditStore;
+  eventPublisher: CanonicalPaymentEventPublisher;
+}
+
+// GL-008 - Application contracts and webhook use case
+
+export class InvalidWebhookSignatureError extends Error {}
+export class DuplicateWebhookEventError extends Error {}
+
+export interface PaymentWebhookProvider {
+  readonly provider: PaymentProviderName;
+  verifyAndNormalizeWebhook(input: {
+    rawBody: string;
+    headers: Record<string, string | undefined>;
+    traceId: string;
+  }): Promise<CanonicalPaymentEvent>;
+}
+
+export interface WebhookDedupStore {
+  has(provider: PaymentProviderName, eventId: string): Promise<boolean>;
+  markProcessed(provider: PaymentProviderName, eventId: string): Promise<void>;
+}
+
+export interface WebhookAuditStore {
+  saveRaw(input: {
+    provider: PaymentProviderName;
+    traceId: string;
+    rawBody: string;
+    headers: Record<string, string | undefined>;
+    receivedAt: string;
+    eventId?: string;
+    status: "processed" | "duplicate" | "rejected";
+    reason?: string;
+  }): Promise<void>;
+}
+
+export interface CanonicalPaymentEventPublisher {
+  publish(event: CanonicalPaymentEvent): Promise<void>;
+}
+
+export interface PaymentWebhookDeps {
+  provider: PaymentWebhookProvider; //
+  dedupStore: WebhookDedupStore;
+  auditStore: WebhookAuditStore;
+  eventPublisher: CanonicalPaymentEventPublisher;
+}
+
+export async function processProviderWebhook(
+  deps: PaymentWebhookDeps,
+  input: PaymentWebhookEnvelope,
+): Promise<PaymentWebhookProcessResult> {
+  try {
+    const event = await deps.provider.verifyAndNormalizeWebhook({
+      rawBody: input.rawBody,
+      headers: input.headers,
+      traceId: input.traceId,
+    });
+
+    const alreadyProcessed = await deps.dedupStore.has(
+      event.provider,
+      event.eventId,
+    );
+    if (alreadyProcessed) {
+      await deps.auditStore.saveRaw({
+        provider: event.provider,
+        traceId: input.traceId,
+        rawBody: input.rawBody,
+        headers: input.headers,
+        receivedAt: input.receivedAt,
+        eventId: event.eventId,
+        status: "duplicate",
+        reason: "Duplicate webhook event",
+      });
+
+      return {
+        status: "duplicate",
+        provider: event.provider,
+        eventId: event.eventId,
+        reason: "Duplicate webhook event",
+      };
+    }
+
+    await deps.dedupStore.markProcessed(event.provider, event.eventId);
+    await deps.eventPublisher.publish(event);
+
+    await deps.auditStore.saveRaw({
+      provider: event.provider,
+      traceId: input.traceId,
+      rawBody: input.rawBody,
+      headers: input.headers,
+      receivedAt: input.receivedAt,
+      eventId: event.eventId,
+      status: "processed",
+    });
+
+    return {
+      status: "processed",
+      provider: event.provider,
+      eventId: event.eventId,
+    };
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : "Unexpected error";
+
+    await deps.auditStore.saveRaw({
+      provider: input.provider,
+      traceId: input.traceId,
+      rawBody: input.rawBody,
+      headers: input.headers,
+      receivedAt: input.receivedAt,
+      status: "rejected",
+      reason,
+    });
+
+    if (error instanceof InvalidWebhookSignatureError) {
+      throw error;
+    }
+
+    throw error;
+  }
 }
