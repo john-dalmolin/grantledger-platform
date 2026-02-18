@@ -225,3 +225,84 @@ export interface SubscriptionAuditEvent {
   tenantId: string;
   metadata: Record<string, string>;
 }
+
+// GL-007 - Deterministic invoice engine contracts
+
+export type InvoiceStatus = "draft" | "issued" | "void";
+export type InvoiceLineType =
+  | "plan"
+  | "proration"
+  | "discount"
+  | "tax"
+  | "adjustment";
+
+export interface InvoiceLine {
+  id: string;
+  type: InvoiceLineType;
+  description: string;
+  quantity: number;
+  unitAmountInCents: number;
+  amountInCents: number;
+  currency: CurrencyCode;
+  metadata?: Record<string, string>;
+}
+
+export interface InvoiceSnapshot {
+  subscriptionId: string;
+  tenantId: string;
+  customerId: string;
+  planId: string;
+  planVersionId: string;
+  priceAmountInCents: number;
+  currency: CurrencyCode;
+  periodStart: string;
+  periodEnd: string;
+  calculationVersion: string;
+}
+
+export interface InvoiceCalculationBreakdown {
+  subtotalInCents: number;
+  discountInCents: number;
+  taxInCents: number;
+  totalInCents: number;
+}
+
+export interface Invoice {
+  id: string;
+  tenantId: string;
+  subscriptionId: string;
+  status: InvoiceStatus;
+  snapshot: InvoiceSnapshot;
+  lines: InvoiceLine[];
+  breakdown: InvoiceCalculationBreakdown;
+  issuedAt?: string;
+  createdAt: string;
+}
+
+export interface GenerateInvoiceForCycleInput {
+  tenantId: string;
+  subscriptionId: string;
+  customerId: string;
+  planId: string;
+  planVersionId: string;
+  priceAmountInCents: number;
+  currency: CurrencyCode;
+  periodStart: string;
+  periodEnd: string;
+  proratedDays?: number;
+  totalDaysInPeriod?: number;
+  discountInCents?: number;
+  taxRateBps?: number; // basis points, e.g. 1000 = 10%
+  calculationVersion: string;
+  traceId: string;
+}
+
+export interface InvoiceAuditEvent {
+  action: "invoice.generate" | "invoice.reissue" | "invoice.adjust";
+  tenantId: string;
+  subscriptionId: string;
+  invoiceId: string;
+  traceId: string;
+  occurredAt: string;
+  metadata: Record<string, string>;
+}
