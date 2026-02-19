@@ -5,22 +5,16 @@ import {
   startSubscriptionCheckout,
   type PaymentProvider,
 } from "@grantledger/application";
-import type {
-  BillingPeriod,
+import {
   CreateCheckoutSessionInput,
   CreateCheckoutSessionResult,
+  startCheckoutPayloadSchema,
+  StartCheckoutPayload,
 } from "@grantledger/contracts";
 
 import { resolveContextFromHeaders } from "./auth.js";
+import { parseOrThrowBadRequest } from "../http/validation.js";
 import type { ApiResponse, Headers } from "../http/types.js";
-
-interface StartCheckoutPayload {
-  planId: string;
-  billingPeriod: BillingPeriod;
-  successUrl?: string;
-  cancelUrl?: string;
-  externalReference?: string;
-}
 
 class FakePaymentProvider implements PaymentProvider {
   public readonly name = "fake" as const;
@@ -51,19 +45,25 @@ export async function handleStartCheckout(
   try {
     const context = resolveContextFromHeaders(headers);
 
+    const parsedPayload = parseOrThrowBadRequest(
+      startCheckoutPayloadSchema,
+      payload,
+      "Invalid checkout payload",
+    );
+
     const checkout = await startSubscriptionCheckout({
       provider: fakePaymentProvider,
       tenantId: context.tenant.id,
-      planId: payload.planId,
-      billingPeriod: payload.billingPeriod,
-      ...(payload.successUrl !== undefined
-        ? { successUrl: payload.successUrl }
+      planId: parsedPayload.planId,
+      billingPeriod: parsedPayload.billingPeriod,
+      ...(parsedPayload.successUrl !== undefined
+        ? { successUrl: parsedPayload.successUrl }
         : {}),
-      ...(payload.cancelUrl !== undefined
-        ? { cancelUrl: payload.cancelUrl }
+      ...(parsedPayload.cancelUrl !== undefined
+        ? { cancelUrl: parsedPayload.cancelUrl }
         : {}),
-      ...(payload.externalReference !== undefined
-        ? { externalReference: payload.externalReference }
+      ...(parsedPayload.externalReference !== undefined
+        ? { externalReference: parsedPayload.externalReference }
         : {}),
     });
 

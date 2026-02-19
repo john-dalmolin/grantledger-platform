@@ -6,8 +6,8 @@ Deliver structural improvements without blocking feature delivery.
 
 ## Canonical References
 
-- Guardrails: `ARCH-GUARDRAILS.md`
-- Roadmap: `IMPROVEMENT-ROADMAP.md`
+- Guardrails: `docs/architecture/ARCH-GUARDRAILS.md`
+- Roadmap: `docs/architecture/IMPROVEMENT-ROADMAP.md`
 - Boundary ADR: `docs/adr/ADR-005-domain-vs-application-boundary.md`
 
 ## Scope
@@ -59,9 +59,11 @@ Deliver structural improvements without blocking feature delivery.
   - Merge SHA: `4cad15d`
   - Notes: Split monolithic indexes into context modules across domain/application/api.
 - [ ] ARCH-003 - Schema-first validation with Zod
-  - Status: TODO
+  - Status: IN_PROGRESS
+  - Issue: `#30`
+  - Branch: `chore/arch-003-schema-first-zod`
   - PR: _to be added_
-  - Notes: _to be added_
+  - Notes: Scope slice = API command inputs + checkout + webhook envelope validation with Zod, preserving backward-compatible contracts.
 - [ ] ARCH-004 - Timezone-safe date/time strategy (Luxon)
   - Status: TODO
   - PR: _to be added_
@@ -82,7 +84,7 @@ Deliver structural improvements without blocking feature delivery.
 ## ADR References
 
 - [x] ADR-005 - Domain vs Application boundary
-- [ ] ADR - Validation strategy (schema-first)
+- [x] ADR-006 - Validation strategy (schema-first, proposed)
 - [ ] ADR - Date/time and timezone policy
 - [ ] ADR - Error and response standardization
 - [ ] ADR - Idempotency strategy

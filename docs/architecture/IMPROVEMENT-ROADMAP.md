@@ -6,15 +6,15 @@ This roadmap tracks architecture hardening as a continuous stream running in par
 
 Canonical references:
 
-- Tracker: `ARCH-TRACKER.md`
-- Guardrails: `ARCH-GUARDRAILS.md`
+- Tracker: `docs/architecture/ARCH-TRACKER.md`
+- Guardrails: `docs/architecture/ARCH-GUARDRAILS.md`
 - Boundary decision: `docs/adr/ADR-005-domain-vs-application-boundary.md`
 
 ## Progress Snapshot
 
 - ARCH-001 completed (`#31`)
 - ARCH-002 completed (`#32`)
-- Next target: ARCH-003 (schema-first validation with Zod)
+- ARCH-003 in progress (`#30`, branch `chore/arch-003-schema-first-zod`)
 
 ## Target Architecture Principles
 
@@ -26,11 +26,18 @@ Canonical references:
 
 ## Current Prioritized Sequence
 
-1. ARCH-003: Schema-first validation with Zod
+1. ARCH-003: Schema-first validation with Zod (in progress)
 2. ARCH-004: Time strategy with Luxon + UTC policy
 3. ARCH-005: Standardized exception model and API response mapper
 4. ARCH-006: Generic idempotency executor
 5. ARCH-007: i18n foundation (`en_US`)
+
+## Current Execution Focus (ARCH-003)
+
+- Introduce canonical Zod schemas in `packages/contracts/src/schemas`.
+- Infer API payload types using `z.infer`.
+- Validate boundary inputs in API handlers and webhook envelope.
+- Preserve existing behavior and response compatibility.
 
 ## Delivery Strategy
 
