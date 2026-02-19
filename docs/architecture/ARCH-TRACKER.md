@@ -58,12 +58,13 @@ Deliver structural improvements without blocking feature delivery.
   - PR: `#32`
   - Merge SHA: `4cad15d`
   - Notes: Split monolithic indexes into context modules across domain/application/api.
-- [ ] ARCH-003 - Schema-first validation with Zod
-  - Status: IN_PROGRESS
+- [x] ARCH-003 - Schema-first validation with Zod
+  - Status: DONE
   - Issue: `#30`
   - Branch: `chore/arch-003-schema-first-zod`
-  - PR: _to be added_
-  - Notes: Scope slice = API command inputs + checkout + webhook envelope validation with Zod, preserving backward-compatible contracts.
+  - PR: `#34`
+  - Merge SHA: `dc7404d`
+  - Notes: Implemented schema-first boundary validation for subscription commands, checkout, and Stripe webhook parsing with canonical schemas in contracts.
 - [ ] ARCH-004 - Timezone-safe date/time strategy (Luxon)
   - Status: TODO
   - PR: _to be added_
@@ -84,7 +85,7 @@ Deliver structural improvements without blocking feature delivery.
 ## ADR References
 
 - [x] ADR-005 - Domain vs Application boundary
-- [x] ADR-006 - Validation strategy (schema-first, proposed)
+- [x] ADR-006 - Validation strategy (schema-first, accepted)
 - [ ] ADR - Date/time and timezone policy
 - [ ] ADR - Error and response standardization
 - [ ] ADR - Idempotency strategy
