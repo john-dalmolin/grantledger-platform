@@ -1,5 +1,7 @@
 # ARCH-000 Guardrails
 
+Related tracker: `ARCH-TRACKER.md`
+
 ## Why these guardrails exist
 
 The project already claims strong architectural principles. These guardrails ensure implementation stays faithful to that promise.
@@ -75,10 +77,21 @@ Allowed:
 - One child issue per PR.
 - No unrelated feature expansion in architecture PRs.
 - Keep PR small enough for high-quality review.
+- Required ARCH docs update timing:
+  - at issue start (`IN_PROGRESS` + scope/branch)
+  - before merge (`DONE` + PR link + merged SHA + residual risks)
 - Mandatory gates before merge:
   - `npm run typecheck`
   - `npm run build`
   - `npm run lint`
+
+## Required Files per ARCH Issue
+
+- `ARCH-TRACKER.md`
+- `IMPROVEMENT-ROADMAP.md`
+- `docs/adr/*` (when architectural decision changed)
+
+When no ADR change is required, the PR must include explicit justification.
 
 ## Review Checklist
 

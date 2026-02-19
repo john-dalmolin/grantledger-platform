@@ -80,6 +80,7 @@ packages/
   shared/
 
 docs/
+  architecture/
   adr/
 ```
 
@@ -149,6 +150,20 @@ Location: `docs/adr`
 - `ADR-002-entitlements-model.md`
 - `ADR-003-idempotency.md`
 - `ADR-004-payment-provider-abstraction.md`
+- `ADR-005-domain-vs-application-boundary.md`
+
+## Architecture Governance
+
+Canonical governance docs:
+
+- Tracker: `docs/architecture/ARCH-TRACKER.md`
+- Guardrails: `docs/architecture/ARCH-GUARDRAILS.md`
+- Improvement roadmap: `docs/architecture/IMPROVEMENT-ROADMAP.md`
+
+Governance update rule for every ARCH issue:
+
+- update docs at issue start (`IN_PROGRESS`)
+- update docs again before merge (`DONE`)
 
 ## Roadmap
 

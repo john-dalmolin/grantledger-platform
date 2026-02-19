@@ -8,6 +8,11 @@
 
 A v1 inicia com Stripe para acelerar entrega, mas o domínio de billing não pode ficar acoplado ao SDK/protocolo de um único provider.
 
+## Related Governance Documents
+
+- Boundary decision: `ADR-005-domain-vs-application-boundary.md`
+- Architecture guardrails: `../architecture/ARCH-GUARDRAILS.md`
+
 ## Decision
 
 Adotaremos interface de provedor (`PaymentProvider`) no domínio de aplicação e adapter Stripe na borda de infraestrutura.
