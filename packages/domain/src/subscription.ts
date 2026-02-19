@@ -4,7 +4,6 @@ import type {
   SubscriptionStatus,
 } from "@grantledger/contracts";
 
-// Note: The invoice calculation logic is duplicated here from the billing service to avoid coupling the domain model to the billing implementation. This allows for more flexibility in how invoices are generated and calculated, and avoids unnecessary dependencies between the domain and billing layers.
 const ALLOWED_STATUS_TRANSITIONS: Record<
   SubscriptionStatus,
   SubscriptionStatus[]
