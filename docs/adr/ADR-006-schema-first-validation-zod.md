@@ -1,6 +1,6 @@
 # ADR-006: Schema-First Boundary Validation with Zod
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-02-19
 - Deciders: Platform Team
 
@@ -52,5 +52,4 @@ Implementation defaults:
 
 ## Follow-up
 
-- Finalize status to `Accepted` once ARCH-003 is merged.
 - Reuse the same pattern in ARCH-004/005 as part of broader boundary standardization.

@@ -14,7 +14,7 @@ Canonical references:
 
 - ARCH-001 completed (`#31`)
 - ARCH-002 completed (`#32`)
-- ARCH-003 in progress (`#30`, branch `chore/arch-003-schema-first-zod`)
+- ARCH-003 completed (`#34`, merge `dc7404d`)
 
 ## Target Architecture Principles
 
@@ -26,18 +26,24 @@ Canonical references:
 
 ## Current Prioritized Sequence
 
-1. ARCH-003: Schema-first validation with Zod (in progress)
-2. ARCH-004: Time strategy with Luxon + UTC policy
+1. ARCH-003: Schema-first validation with Zod (completed)
+2. ARCH-004: Time strategy with Luxon + UTC policy (next)
 3. ARCH-005: Standardized exception model and API response mapper
 4. ARCH-006: Generic idempotency executor
 5. ARCH-007: i18n foundation (`en_US`)
 
-## Current Execution Focus (ARCH-003)
+## Completed Slice (ARCH-003)
 
 - Introduce canonical Zod schemas in `packages/contracts/src/schemas`.
 - Infer API payload types using `z.infer`.
 - Validate boundary inputs in API handlers and webhook envelope.
 - Preserve existing behavior and response compatibility.
+
+## Next Execution Focus (ARCH-004)
+
+- Define timezone-safe date/time policy.
+- Introduce Luxon-backed boundary/date parsing strategy.
+- Document UTC normalization and offset handling rules.
 
 ## Delivery Strategy
 
