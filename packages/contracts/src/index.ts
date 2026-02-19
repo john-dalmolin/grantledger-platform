@@ -24,7 +24,12 @@ export interface IdempotencyRecord<TResponse = unknown> {
   createdAt: string;
 }
 
-export type PaymentProviderName = "fake";
+export type PaymentProviderName =
+  | "fake"
+  | "stripe"
+  | "paypal"
+  | "adyen"
+  | "braintree"; // Extend this union as you add support for more providers
 export type BillingPeriod = "monthly" | "yearly";
 
 export interface CreateCheckoutSessionInput {
@@ -308,8 +313,6 @@ export interface InvoiceAuditEvent {
 }
 
 // GL-008 - Canonical payments contracts
-
-// export type PaymentProviderName = "stripe";
 
 export type CanonicalPaymentEventType =
   | "payment.succeeded"
