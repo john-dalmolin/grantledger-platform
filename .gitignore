@@ -3,3 +3,6 @@ node_modules/
 *.tsbuildinfo
 coverage/
 .DS_Store
+*.code-workspace
+coverage/
+.vscode/
