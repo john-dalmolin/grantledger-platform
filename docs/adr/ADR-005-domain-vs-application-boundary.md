@@ -6,6 +6,12 @@ As the codebase evolved, parts of business logic, orchestration, and transport c
 
 > need a strict and explicit boundary between `domain`, `application`, `api/infra`.
 
+## Related Governance Documents
+
+- Tracker: `../architecture/ARCH-TRACKER.md`
+- Guardrails: `../architecture/ARCH-GUARDRAILS.md`
+- Improvement roadmap: `../architecture/IMPROVEMENT-ROADMAP.md`
+
 ## Decision
 
 ### 1. Domain Layer (`packages/domain`)

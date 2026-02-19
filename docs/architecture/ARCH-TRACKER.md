@@ -4,6 +4,12 @@
 
 Deliver structural improvements without blocking feature delivery.
 
+## Canonical References
+
+- Guardrails: `ARCH-GUARDRAILS.md`
+- Roadmap: `IMPROVEMENT-ROADMAP.md`
+- Boundary ADR: `docs/adr/ADR-005-domain-vs-application-boundary.md`
+
 ## Scope
 
 - Define and enforce Domain vs Application boundaries
@@ -24,16 +30,34 @@ Deliver structural improvements without blocking feature delivery.
 - Run in parallel with feature delivery using controlled WIP.
 - Limit active architecture work to one child issue at a time.
 
+## Required Update Timing (Always)
+
+### Start of ARCH issue (branch/issue opened)
+
+- Update this tracker with `IN_PROGRESS`, issue link, and branch name.
+- Update `IMPROVEMENT-ROADMAP.md` with focus and dependencies.
+- If a new architectural decision is needed, create/update ADR draft.
+- If no ADR change is needed, register: `No ADR change required`.
+
+### End of ARCH issue (before merge)
+
+- Update this tracker with `DONE`, PR link, and merged SHA.
+- Update `IMPROVEMENT-ROADMAP.md` with next step and residual risks.
+- Finalize ADR changes (when applicable).
+- Confirm PR checklist includes all ARCH governance items.
+
 ## Child Issues
 
-- [ ] ARCH-001 - Domain vs Application boundaries
-  - Status: TODO
-  - PR: _to be added_
-  - Notes: _to be added_
-- [ ] ARCH-002 - Modularize monolithic `index.ts`
-  - Status: TODO
-  - PR: _to be added_
-  - Notes: _to be added_
+- [x] ARCH-001 - Domain vs Application boundaries
+  - Status: DONE
+  - PR: `#31`
+  - Merge SHA: `88787d7`
+  - Notes: Added ADR-005 and baseline architecture guardrails/tracker.
+- [x] ARCH-002 - Modularize monolithic `index.ts`
+  - Status: DONE
+  - PR: `#32`
+  - Merge SHA: `4cad15d`
+  - Notes: Split monolithic indexes into context modules across domain/application/api.
 - [ ] ARCH-003 - Schema-first validation with Zod
   - Status: TODO
   - PR: _to be added_
@@ -57,7 +81,7 @@ Deliver structural improvements without blocking feature delivery.
 
 ## ADR References
 
-- [ ] ADR - Domain vs Application boundary
+- [x] ADR-005 - Domain vs Application boundary
 - [ ] ADR - Validation strategy (schema-first)
 - [ ] ADR - Date/time and timezone policy
 - [ ] ADR - Error and response standardization
