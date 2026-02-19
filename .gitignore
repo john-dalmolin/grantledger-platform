@@ -6,3 +6,14 @@ coverage/
 *.code-workspace
 coverage/
 .vscode/
+
+# Local/editor noise
+*.code-workspace
+.DS_Store
+**/.DS_Store
+**/dist/
+**/*.tsbuildinfo
+.turbo/
+**/.turbo/
+.cache/
+**/.cache/
