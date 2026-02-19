@@ -14,6 +14,7 @@ import {
   type SubscriptionUseCaseDeps,
   SubscriptionValidationError,
   upgradeSubscription,
+  BadRequestError,
 } from "@grantledger/application";
 import type {
   CancelSubscriptionAtPeriodEndCommandInput,
@@ -25,6 +26,15 @@ import type {
   SubscriptionDomainEvent,
   UpgradeSubscriptionCommandInput,
 } from "@grantledger/contracts";
+import {
+  upgradeSubscriptionCommandPayloadSchema,
+  createSubscriptionCommandPayloadSchema,
+  downgradeSubscriptionCommandPayloadSchema,
+  cancelSubscriptionNowCommandPayloadSchema,
+  cancelSubscriptionAtPeriodEndCommandPayloadSchema,
+} from "@grantledger/contracts";
+
+import { parseOrThrowBadRequest } from "../http/validation.js";
 import { SubscriptionDomainError } from "@grantledger/domain";
 import { randomUUID } from "crypto";
 
@@ -108,7 +118,10 @@ function getErrorMessage(error: unknown): string {
 }
 
 function toApiError(error: unknown): ApiResponse {
-  if (error instanceof SubscriptionValidationError) {
+  if (
+    error instanceof BadRequestError ||
+    error instanceof SubscriptionValidationError
+  ) {
     return { status: 400, body: { message: getErrorMessage(error) } };
   }
 
@@ -129,33 +142,30 @@ function toApiError(error: unknown): ApiResponse {
 
 export async function handleCreateSubscriptionCommand(
   headers: Headers,
-  payload: {
-    subscriptionId: string;
-    tenantId: string;
-    customerId: string;
-    planId: string;
-    currentPeriodStart: string;
-    currentPeriodEnd: string;
-    trialEndsAt?: string;
-    reason?: string;
-  },
+  payload: unknown,
 ): Promise<ApiResponse> {
   try {
+    const parsedPayload = parseOrThrowBadRequest(
+      createSubscriptionCommandPayloadSchema,
+      payload,
+      "Invalid create subscription command payload",
+    );
+
     const input: CreateSubscriptionCommandInput = {
-      subscriptionId: payload.subscriptionId,
-      tenantId: payload.tenantId,
-      customerId: payload.customerId,
-      planId: payload.planId,
+      subscriptionId: parsedPayload.subscriptionId,
+      tenantId: parsedPayload.tenantId,
+      customerId: parsedPayload.customerId,
+      planId: parsedPayload.planId,
       currentPeriod: {
-        startsAt: payload.currentPeriodStart,
-        endsAt: payload.currentPeriodEnd,
+        startsAt: parsedPayload.currentPeriodStart,
+        endsAt: parsedPayload.currentPeriodEnd,
       },
-      ...(payload.trialEndsAt !== undefined
-        ? { trialEndsAt: payload.trialEndsAt }
+      ...(parsedPayload.trialEndsAt !== undefined
+        ? { trialEndsAt: parsedPayload.trialEndsAt }
         : {}),
       context: buildCommandContext(
         headers,
-        payload.reason ?? "create subscription",
+        parsedPayload.reason ?? "create subscription",
       ),
     };
 
@@ -168,21 +178,22 @@ export async function handleCreateSubscriptionCommand(
 
 export async function handleUpgradeSubscriptionCommand(
   headers: Headers,
-  payload: {
-    subscriptionId: string;
-    nextPlanId: string;
-    effectiveAt: string;
-    reason?: string;
-  },
+  payload: unknown,
 ): Promise<ApiResponse> {
   try {
+    const parsedPayload = parseOrThrowBadRequest(
+      upgradeSubscriptionCommandPayloadSchema,
+      payload,
+      "Invalid upgrade subscription command payload",
+    );
+
     const input: UpgradeSubscriptionCommandInput = {
-      subscriptionId: payload.subscriptionId,
-      nextPlanId: payload.nextPlanId,
-      effectiveAt: payload.effectiveAt,
+      subscriptionId: parsedPayload.subscriptionId,
+      nextPlanId: parsedPayload.nextPlanId,
+      effectiveAt: parsedPayload.effectiveAt,
       context: buildCommandContext(
         headers,
-        payload.reason ?? "upgrade subscription",
+        parsedPayload.reason ?? "upgrade subscription",
       ),
     };
 
@@ -195,21 +206,22 @@ export async function handleUpgradeSubscriptionCommand(
 
 export async function handleDowngradeSubscriptionCommand(
   headers: Headers,
-  payload: {
-    subscriptionId: string;
-    nextPlanId: string;
-    effectiveAt: string;
-    reason?: string;
-  },
+  payload: unknown,
 ): Promise<ApiResponse> {
   try {
+    const parsedPayload = parseOrThrowBadRequest(
+      downgradeSubscriptionCommandPayloadSchema,
+      payload,
+      "Invalid downgrade subscription command payload",
+    );
+
     const input: DowngradeSubscriptionCommandInput = {
-      subscriptionId: payload.subscriptionId,
-      nextPlanId: payload.nextPlanId,
-      effectiveAt: payload.effectiveAt,
+      subscriptionId: parsedPayload.subscriptionId,
+      nextPlanId: parsedPayload.nextPlanId,
+      effectiveAt: parsedPayload.effectiveAt,
       context: buildCommandContext(
         headers,
-        payload.reason ?? "downgrade subscription",
+        parsedPayload.reason ?? "downgrade subscription",
       ),
     };
 
@@ -222,19 +234,21 @@ export async function handleDowngradeSubscriptionCommand(
 
 export async function handleCancelSubscriptionNowCommand(
   headers: Headers,
-  payload: {
-    subscriptionId: string;
-    canceledAt: string;
-    reason?: string;
-  },
+  payload: unknown,
 ): Promise<ApiResponse> {
   try {
+    const parsedPayload = parseOrThrowBadRequest(
+      cancelSubscriptionNowCommandPayloadSchema,
+      payload,
+      "Invalid cancel subscription now command payload",
+    );
+
     const input: CancelSubscriptionNowCommandInput = {
-      subscriptionId: payload.subscriptionId,
-      canceledAt: payload.canceledAt,
+      subscriptionId: parsedPayload.subscriptionId,
+      canceledAt: parsedPayload.canceledAt,
       context: buildCommandContext(
         headers,
-        payload.reason ?? "cancel subscription now",
+        parsedPayload.reason ?? "cancel subscription now",
       ),
     };
 
@@ -247,17 +261,20 @@ export async function handleCancelSubscriptionNowCommand(
 
 export async function handleCancelSubscriptionAtPeriodEndCommand(
   headers: Headers,
-  payload: {
-    subscriptionId: string;
-    reason?: string;
-  },
+  payload: unknown,
 ): Promise<ApiResponse> {
   try {
+    const parsedPayload = parseOrThrowBadRequest(
+      cancelSubscriptionAtPeriodEndCommandPayloadSchema,
+      payload,
+      "Invalid cancel subscription at period end command payload",
+    );
+
     const input: CancelSubscriptionAtPeriodEndCommandInput = {
-      subscriptionId: payload.subscriptionId,
+      subscriptionId: parsedPayload.subscriptionId,
       context: buildCommandContext(
         headers,
-        payload.reason ?? "cancel subscription at period end",
+        parsedPayload.reason ?? "cancel subscription at period end",
       ),
     };
 

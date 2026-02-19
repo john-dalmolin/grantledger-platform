@@ -1,5 +1,10 @@
-import type { CanonicalPaymentEvent } from "@grantledger/contracts";
 import {
+  stripeProviderEventSchema,
+  type CanonicalPaymentEvent,
+  type StripeProviderEvent,
+} from "@grantledger/contracts";
+import {
+  BadRequestError,
   InvalidWebhookSignatureError,
   type PaymentWebhookProvider,
 } from "@grantledger/application";
@@ -51,39 +56,26 @@ export class StripeWebhookProvider implements PaymentWebhookProvider {
     return rawBody.length > 0 && signature.length > 0 && secret.length > 0;
   }
 
-  private parseProviderEvent(rawBody: string): {
-    id: string;
-    type: string;
-    created: number;
-    data?: { object?: Record<string, unknown> };
-  } {
-    const parsed = JSON.parse(rawBody) as {
-      id?: string;
-      type?: string;
-      created?: number;
-      data?: { object?: Record<string, unknown> };
-    };
+  private parseProviderEvent(rawBody: string): StripeProviderEvent {
+    let parsedJson: unknown;
 
-    if (!parsed.id || !parsed.type || !parsed.created) {
-      throw new Error("Invalid Stripe event payload");
+    try {
+      parsedJson = JSON.parse(rawBody);
+    } catch {
+      throw new BadRequestError("Invalid Stripe event payload: malformed JSON");
     }
 
-    const base = {
-      id: parsed.id,
-      type: parsed.type,
-      created: parsed.created,
-    };
+    const parsedEvent = stripeProviderEventSchema.safeParse(parsedJson);
 
-    return parsed.data === undefined ? base : { ...base, data: parsed.data };
+    if (!parsedEvent.success) {
+      throw new BadRequestError("Invalid Stripe event payload");
+    }
+
+    return parsedEvent.data;
   }
 
   private toCanonicalEvent(
-    providerEvent: {
-      id: string;
-      type: string;
-      created: number;
-      data?: { object?: Record<string, unknown> };
-    },
+    providerEvent: StripeProviderEvent,
     traceId: string,
   ): CanonicalPaymentEvent {
     const canonicalType = this.mapStripeType(providerEvent.type);
@@ -94,7 +86,7 @@ export class StripeWebhookProvider implements PaymentWebhookProvider {
       this.readString(object, "subscription") ??
       this.readString(object, "metadata.subscription_id");
 
-    const baseEvent: CanonicalPaymentEvent = {
+    return {
       provider: "stripe",
       eventId: providerEvent.id,
       type: canonicalType,
@@ -107,8 +99,6 @@ export class StripeWebhookProvider implements PaymentWebhookProvider {
       ...(tenantId !== undefined ? { tenantId } : {}),
       ...(subscriptionId !== undefined ? { subscriptionId } : {}),
     };
-
-    return baseEvent;
   }
 
   private mapStripeType(type: string): CanonicalPaymentEvent["type"] {
@@ -128,7 +118,6 @@ export class StripeWebhookProvider implements PaymentWebhookProvider {
       case "payment_intent.payment_failed":
         return "payment.failed";
       default:
-        // Defaulting to a safe semantic that preserves event observability.
         return "subscription.updated";
     }
   }

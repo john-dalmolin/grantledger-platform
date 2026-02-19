@@ -7,16 +7,17 @@ import {
   processWithIdempotency,
   resolveRequestContext,
 } from "@grantledger/application";
-import type { IdempotencyRecord, RequestContext } from "@grantledger/contracts";
-import type { Membership } from "@grantledger/domain";
+import type {
+  CreateSubscriptionPayload,
+  IdempotencyRecord,
+  RequestContext,
+} from "@grantledger/contracts";
+import { createSubscriptionPayloadSchema } from "@grantledger/contracts";
 
-import { getHeader } from "../http/headers.js";
+import { parseOrThrowBadRequest } from "../http/validation.js";
 import type { ApiResponse, Headers } from "../http/types.js";
-
-interface CreateSubscriptionPayload {
-  planId: string;
-  externalReference?: string;
-}
+import type { Membership } from "@grantledger/domain";
+import { getHeader } from "../http/headers.js";
 
 interface CreateSubscriptionResponse {
   subscriptionId: string;
@@ -86,10 +87,11 @@ export function handleCreateSubscription(
 ): ApiResponse {
   try {
     const context = resolveContextFromHeaders(headers);
-
-    if (!payload.planId) {
-      throw new BadRequestError("planId is required");
-    }
+    const parsedPayload = parseOrThrowBadRequest(
+      createSubscriptionPayloadSchema,
+      payload,
+      "Invalid create subscription payload",
+    );
 
     const idempotencyKey = getHeader(headers, "idempotency-key");
 
@@ -97,14 +99,15 @@ export function handleCreateSubscription(
       key: idempotencyKey,
       payload: {
         tenantId: context.tenant.id,
-        planId: payload.planId,
-        externalReference: payload.externalReference ?? null,
+        planId: parsedPayload.planId,
+        externalReference: parsedPayload.externalReference ?? null,
       },
+
       store: idempotencyStore,
       execute: () => ({
         subscriptionId: `sub_${idempotencyStore.size + 1}`,
         tenantId: context.tenant.id,
-        planId: payload.planId,
+        planId: parsedPayload.planId,
         status: "active",
         createdAt: new Date().toISOString(),
       }),
