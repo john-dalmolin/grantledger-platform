@@ -3,6 +3,7 @@ import type {
   SubscriptionDomainEvent,
   SubscriptionStatus,
 } from "@grantledger/contracts";
+import { parseIsoToEpochMillis } from "@grantledger/shared";
 
 const ALLOWED_STATUS_TRANSITIONS: Record<
   SubscriptionStatus,
@@ -15,7 +16,7 @@ const ALLOWED_STATUS_TRANSITIONS: Record<
 };
 
 function toEpoch(value: string): number {
-  return new Date(value).getTime();
+  return parseIsoToEpochMillis(value);
 }
 
 function assertInCurrentPeriod(subscription: Subscription, at: string): void {

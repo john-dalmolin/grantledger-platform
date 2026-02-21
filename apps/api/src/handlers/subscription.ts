@@ -37,6 +37,7 @@ import {
 import { parseOrThrowBadRequest } from "../http/validation.js";
 import { SubscriptionDomainError } from "@grantledger/domain";
 import { randomUUID } from "crypto";
+import { utcNowIso } from "@grantledger/shared";
 
 import { getHeader } from "../http/headers.js";
 import type { ApiResponse, Headers } from "../http/types.js";
@@ -102,7 +103,7 @@ function buildCommandContext(headers: Headers, reason: string) {
   const actorId = getHeader(headers, "x-user-id") ?? "system";
   const traceId = getHeader(headers, "x-trace-id") ?? randomUUID();
   const idempotencyKey = getHeader(headers, "idempotency-key") ?? "";
-  const requestedAt = new Date().toISOString();
+  const requestedAt = utcNowIso();
 
   return {
     actor: { id: actorId, type: "user" as const },

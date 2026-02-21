@@ -66,9 +66,11 @@ Deliver structural improvements without blocking feature delivery.
   - Merge SHA: `dc7404d`
   - Notes: Implemented schema-first boundary validation for subscription commands, checkout, and Stripe webhook parsing with canonical schemas in contracts.
 - [ ] ARCH-004 - Timezone-safe date/time strategy (Luxon)
-  - Status: TODO
+  - Status: IN_PROGRESS
+  - Issue: `#36`
+  - Branch: `chore/arch-004-timezone-luxon-policy`
   - PR: _to be added_
-  - Notes: _to be added_
+  - Notes: Strict ISO-8601 datetime with explicit timezone offset, Luxon shared utilities, and critical Date migration.
 - [ ] ARCH-005 - Standard error model + API response mapping
   - Status: TODO
   - PR: _to be added_
@@ -86,7 +88,7 @@ Deliver structural improvements without blocking feature delivery.
 
 - [x] ADR-005 - Domain vs Application boundary
 - [x] ADR-006 - Validation strategy (schema-first, accepted)
-- [ ] ADR - Date/time and timezone policy
+- [ ] ADR-007 - Date/time and timezone policy (proposed)
 - [ ] ADR - Error and response standardization
 - [ ] ADR - Idempotency strategy
 - [ ] ADR - i18n baseline approach

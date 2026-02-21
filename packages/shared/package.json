@@ -8,5 +8,8 @@
   "scripts": {
     "build": "tsc -b",
     "test": "node -e \"console.log('No tests yet: @grantledger/shared')\""
+  },
+  "dependencies": {
+    "luxon": "^3.7.2"
   }
 }

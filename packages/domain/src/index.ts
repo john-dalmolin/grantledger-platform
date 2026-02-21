@@ -1,4 +1,5 @@
 import type { PlanVersion } from "@grantledger/contracts";
+import { parseIsoToEpochMillis } from "@grantledger/shared";
 
 export * from "./invoice.js";
 export * from "./subscription.js";
@@ -59,7 +60,7 @@ export function hashPayload(payload: unknown): string {
 }
 
 function toTime(value: string): number {
-  return new Date(value).getTime();
+  return parseIsoToEpochMillis(value);
 }
 
 function rangesOverlap(

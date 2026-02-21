@@ -8,6 +8,7 @@ import {
   InvalidWebhookSignatureError,
   type PaymentWebhookProvider,
 } from "@grantledger/application";
+import { epochSecondsToUtcIso } from "@grantledger/shared";
 
 export class StripeWebhookProvider implements PaymentWebhookProvider {
   readonly provider = "stripe" as const;
@@ -91,7 +92,7 @@ export class StripeWebhookProvider implements PaymentWebhookProvider {
       eventId: providerEvent.id,
       type: canonicalType,
       domainEventVersion: "v1",
-      occurredAt: new Date(providerEvent.created * 1000).toISOString(),
+      occurredAt: epochSecondsToUtcIso(providerEvent.created),
       traceId,
       payload: {
         stripeType: providerEvent.type,
