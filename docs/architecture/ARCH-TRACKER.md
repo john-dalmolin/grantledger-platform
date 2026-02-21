@@ -48,24 +48,24 @@ Deliver structural improvements without blocking feature delivery.
 
 ## Child Issues
 
-- [x] ARCH-001 - Domain vs Application boundaries
+- [X] ARCH-001 - Domain vs Application boundaries
   - Status: DONE
   - PR: `#31`
   - Merge SHA: `88787d7`
   - Notes: Added ADR-005 and baseline architecture guardrails/tracker.
-- [x] ARCH-002 - Modularize monolithic `index.ts`
+- [X] ARCH-002 - Modularize monolithic `index.ts`
   - Status: DONE
   - PR: `#32`
   - Merge SHA: `4cad15d`
   - Notes: Split monolithic indexes into context modules across domain/application/api.
-- [x] ARCH-003 - Schema-first validation with Zod
+- [X] ARCH-003 - Schema-first validation with Zod
   - Status: DONE
   - Issue: `#30`
   - Branch: `chore/arch-003-schema-first-zod`
   - PR: `#34`
   - Merge SHA: `dc7404d`
   - Notes: Implemented schema-first boundary validation for subscription commands, checkout, and Stripe webhook parsing with canonical schemas in contracts.
-- [x] ARCH-004 - Timezone-safe date/time strategy (Luxon)
+- [X] ARCH-004 - Timezone-safe date/time strategy (Luxon)
   - Status: DONE
   - Issue: `#36`
   - Branch: `chore/arch-004-timezone-luxon-policy`
@@ -74,7 +74,7 @@ Deliver structural improvements without blocking feature delivery.
   - Notes: Strict ISO-8601 datetime with explicit timezone offset, Luxon shared utilities, and critical Date migration.
 - [ ] ARCH-005 - Standard error model + API response mapping
   - Status: IN_PROGRESS
-  - Issue: `#`
+  - Issue: `#39`
   - Branch: `chore/arch-005-error-model-api-mapper`
   - PR: _to be added_
   - Notes: Safe slice for auth/checkout/subscription using AppError + centralized API mapper.
@@ -89,9 +89,9 @@ Deliver structural improvements without blocking feature delivery.
 
 ## ADR References
 
-- [x] ADR-005 - Domain vs Application boundary
-- [x] ADR-006 - Validation strategy (schema-first, accepted)
-- [x] ADR-007 - Date/time and timezone policy (accepted)
+- [X] ADR-005 - Domain vs Application boundary
+- [X] ADR-006 - Validation strategy (schema-first, accepted)
+- [X] ADR-007 - Date/time and timezone policy (accepted)
 - [ ] ADR-008 - Error and response standardization (proposed)
 - [ ] ADR - Idempotency strategy
 - [ ] ADR - i18n baseline approach
