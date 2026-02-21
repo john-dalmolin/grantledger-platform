@@ -18,7 +18,7 @@ Canonical references:
 - ARCH-004 completed (`#37`, merge `46e6804`)
 - ARCH-005 completed (`#40`, merge `b72ef69`)
 - ARCH-006 completed (`#43`, merge `0706202`)
-- ARCH-007 in progress (`#45`, branch `chore/arch-007-i18n-foundation`)
+- ARCH-007 completed (`#46`, merge `64e2d3d`)
 
 ## Target Architecture Principles
 
@@ -30,9 +30,9 @@ Canonical references:
 
 ## Current Prioritized Sequence
 
-1. ARCH-007: i18n foundation (`en_US`) (in progress)
+1. ARCH-007: i18n foundation (`en_US`) (completed)
 
-## Next execution focus: ARCH-007
+## Next execution focus: ARCH stream closed (all planned slices completed)
 
 - Introduce translation boundary in API/application layers without business-rule changes.
 - Add canonical message catalog with stable keys and `en_US` baseline.
