@@ -8,8 +8,9 @@
   "scripts": {
     "build": "npm run -ws --if-present build",
     "lint": "eslint \"{apps,packages}/**/*.ts\"",
-    "test": "npm run -ws --if-present test",
-    "typecheck": "tsc -b"
+    "test": "vitest run",
+    "typecheck": "tsc -b",
+    "test:watch": "vitest"
   },
   "packageManager": "npm@10.9.2",
   "engines": {
@@ -23,6 +24,8 @@
     "@typescript-eslint/parser": "^8.25.0",
     "eslint": "^8.57.1",
     "prettier": "^3.5.3",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.2",
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "^4.0.18"
   }
 }
