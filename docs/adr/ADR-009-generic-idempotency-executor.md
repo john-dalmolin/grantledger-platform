@@ -1,17 +1,17 @@
 # ADR-009: Generic Async Idempotency Executor
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-02-21
 - Deciders: Platform Team
 
 ## Context
 
-Idempotency handling is currently split across flows:
+Idempotency handling was split across flows:
 - Generic helper for some API paths.
 - Custom local orchestration in subscription use cases.
 - Separate dedup logic in payment-webhook flow.
 
-This fragmentation increases maintenance cost and semantic drift risk.
+This fragmentation increased maintenance cost and semantic drift risk.
 
 ## Decision
 
@@ -39,6 +39,7 @@ Adopt a generic async idempotency executor in `@grantledger/application` as the 
 
 - Migration effort in existing flows.
 - Transitional period where compatibility wrapper still coexists.
+- Webhook path now favors deterministic key-based dedup over payload-hash conflict checks.
 
 ## Guardrails
 
@@ -51,7 +52,3 @@ Adopt a generic async idempotency executor in `@grantledger/application` as the 
 
 - Keep separate implementations per flow: faster now, higher long-term drift.
 - Full strict payload-hash enforcement for webhook now: stronger guarantees but higher rollout complexity.
-
-## Follow-up
-
-- Mark this ADR as `Accepted` when ARCH-006 is merged.
