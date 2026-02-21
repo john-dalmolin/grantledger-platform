@@ -17,6 +17,7 @@ Canonical references:
 - ARCH-003 completed (`#34`, merge `dc7404d`)
 - ARCH-004 completed (`#37`, merge `46e6804`)
 - ARCH-005 completed (`#40`, merge `b72ef69`)
+- ARCH-006 in progress (`#42`, branch `chore/arch-006-generic-idempotency-executor`)
 
 ## Target Architecture Principles
 
@@ -28,29 +29,15 @@ Canonical references:
 
 ## Current Prioritized Sequence
 
-2. ARCH-006: Generic idempotency executor (in progress)
-3. ARCH-007: i18n foundation (`en_US`)
-
-## Completed Slices
-
-### ARCH-003
-
-- Introduced canonical Zod schemas in `packages/contracts/src/schemas`.
-- Inferred API payload types using `z.infer`.
-- Validated boundary inputs in API handlers and webhook envelope.
-
-### ARCH-004
-
-- Defined timezone-safe datetime policy with Luxon.
-- Enforced explicit timezone offset at boundaries.
-- Standardized UTC timestamp generation utilities.
+1. ARCH-006: Generic idempotency executor (in progress)
+2. ARCH-007: i18n foundation (`en_US`)
 
 ## Next execution focus: ARCH-006
 
-- API error payload standardized with message + code + optional details/traceId.
-- Backward compatibility preserved via message field.
-- Central mapping reduces duplicated handler logic and inconsistency risk.
-- Remaining migration for modules outside safe slice is deferred to ARCH-006.
+- Introduce generic async idempotency executor in application layer.
+- Migrate subscription custom idempotency flow to shared foundation.
+- Align auth flow with shared executor.
+- Adopt key-based dedup orchestration in payment webhook flow.
 
 ## Delivery Strategy
 
@@ -62,27 +49,3 @@ Canonical references:
   - `npm run build`
   - `npm run lint`
   - `npm run test`
-
-## Mandatory Governance Workflow (Always)
-
-### Start of issue
-
-- Mark issue as `IN_PROGRESS` in `ARCH-TRACKER.md`.
-- Register issue link, branch name, and planned scope.
-- Update roadmap focus/dependencies.
-- Create ADR draft when new architectural decision is needed.
-
-### End of issue (before merge)
-
-- Mark issue as `DONE` in `ARCH-TRACKER.md`.
-- Register PR link and merged SHA.
-- Update roadmap next step and residual risks.
-- Finalize ADR changes or explicitly register `No ADR change required`.
-
-## Success Criteria for ARCH Stream
-
-- No core business logic concentrated in monolithic modules.
-- Layer boundaries are clear and reviewable.
-- Validation, time policy, and error mapping are standardized.
-- Idempotency orchestration is generic and reusable.
-- Governance docs stay synchronized with code and PR lifecycle.

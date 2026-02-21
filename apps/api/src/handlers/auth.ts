@@ -1,7 +1,8 @@
 import { toApiErrorResponse } from "../http/errors.js";
 import {
-  processWithIdempotency,
+  executeIdempotent,
   resolveRequestContext,
+  type AsyncIdempotencyStore,
 } from "@grantledger/application";
 import type {
   CreateSubscriptionPayload,
@@ -33,6 +34,23 @@ const idempotencyStore = new Map<
   string,
   IdempotencyRecord<CreateSubscriptionResponse>
 >();
+
+const authIdempotencyStore: AsyncIdempotencyStore<CreateSubscriptionResponse> =
+  {
+    async get(
+      scope: string,
+      key: string,
+    ): Promise<IdempotencyRecord<CreateSubscriptionResponse> | null> {
+      return idempotencyStore.get(`${scope}:${key}`) ?? null;
+    },
+    async set(
+      scope: string,
+      key: string,
+      record: IdempotencyRecord<CreateSubscriptionResponse>,
+    ): Promise<void> {
+      idempotencyStore.set(`${scope}:${key}`, record);
+    },
+  };
 
 export function resolveContextFromHeaders(headers: Headers): RequestContext {
   const userId = getHeader(headers, "x-user-id");
@@ -69,10 +87,10 @@ export function handleProtectedRequest(headers: Headers): ApiResponse {
   }
 }
 
-export function handleCreateSubscription(
+export async function handleCreateSubscription(
   headers: Headers,
   payload: CreateSubscriptionPayload,
-): ApiResponse {
+): Promise<ApiResponse> {
   try {
     const context = resolveContextFromHeaders(headers);
     const parsedPayload = parseOrThrowBadRequest(
@@ -83,16 +101,16 @@ export function handleCreateSubscription(
 
     const idempotencyKey = getHeader(headers, "idempotency-key");
 
-    const { response, replayed } = processWithIdempotency({
+    const { response, replayed } = await executeIdempotent({
+      scope: "auth.create_subscription",
       key: idempotencyKey,
       payload: {
         tenantId: context.tenant.id,
         planId: parsedPayload.planId,
         externalReference: parsedPayload.externalReference ?? null,
       },
-
-      store: idempotencyStore,
-      execute: () => ({
+      store: authIdempotencyStore,
+      execute: async () => ({
         subscriptionId: `sub_${idempotencyStore.size + 1}`,
         tenantId: context.tenant.id,
         planId: parsedPayload.planId,

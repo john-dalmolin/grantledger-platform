@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { handleProtectedRequest } from "./auth.js";
+import { handleCreateSubscription, handleProtectedRequest } from "./auth.js";
 import type { Headers } from "../http/types.js";
 
 function asHeaders(value: Record<string, string>): Headers {
@@ -29,5 +29,45 @@ describe("auth handler integration", () => {
       }),
     );
     expect(response.status).toBe(403);
+  });
+
+  it("replays create subscription with same idempotency key and payload", async () => {
+    const headers = asHeaders({
+      "x-user-id": "u_1",
+      "x-tenant-id": "t_1",
+      "idempotency-key": "idem-auth-1",
+    });
+
+    const payload = { planId: "plan_basic" } as Parameters<
+      typeof handleCreateSubscription
+    >[1];
+
+    const first = await handleCreateSubscription(headers, payload);
+    const second = await handleCreateSubscription(headers, payload);
+
+    expect(first.status).toBe(201);
+    expect(second.status).toBe(200);
+  });
+
+  it("returns 409 for same idempotency key with different payload", async () => {
+    const headers = asHeaders({
+      "x-user-id": "u_1",
+      "x-tenant-id": "t_1",
+      "idempotency-key": "idem-auth-2",
+    });
+
+    const firstPayload = { planId: "plan_a" } as Parameters<
+      typeof handleCreateSubscription
+    >[1];
+
+    const secondPayload = { planId: "plan_b" } as Parameters<
+      typeof handleCreateSubscription
+    >[1];
+
+    const first = await handleCreateSubscription(headers, firstPayload);
+    const second = await handleCreateSubscription(headers, secondPayload);
+
+    expect(first.status).toBe(201);
+    expect(second.status).toBe(409);
   });
 });
