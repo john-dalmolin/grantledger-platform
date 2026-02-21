@@ -48,36 +48,38 @@ Deliver structural improvements without blocking feature delivery.
 
 ## Child Issues
 
-- [X] ARCH-001 - Domain vs Application boundaries
+- [x] ARCH-001 - Domain vs Application boundaries
   - Status: DONE
   - PR: `#31`
   - Merge SHA: `88787d7`
   - Notes: Added ADR-005 and baseline architecture guardrails/tracker.
-- [X] ARCH-002 - Modularize monolithic `index.ts`
+- [x] ARCH-002 - Modularize monolithic `index.ts`
   - Status: DONE
   - PR: `#32`
   - Merge SHA: `4cad15d`
   - Notes: Split monolithic indexes into context modules across domain/application/api.
-- [X] ARCH-003 - Schema-first validation with Zod
+- [x] ARCH-003 - Schema-first validation with Zod
   - Status: DONE
   - Issue: `#30`
   - Branch: `chore/arch-003-schema-first-zod`
   - PR: `#34`
   - Merge SHA: `dc7404d`
   - Notes: Implemented schema-first boundary validation for subscription commands, checkout, and Stripe webhook parsing with canonical schemas in contracts.
-- [X] ARCH-004 - Timezone-safe date/time strategy (Luxon)
+- [x] ARCH-004 - Timezone-safe date/time strategy (Luxon)
   - Status: DONE
   - Issue: `#36`
   - Branch: `chore/arch-004-timezone-luxon-policy`
   - PR: `#37`
   - Merge SHA: `46e6804`
   - Notes: Strict ISO-8601 datetime with explicit timezone offset, Luxon shared utilities, and critical Date migration.
-- [ ] ARCH-005 - Standard error model + API response mapping
-  - Status: IN_PROGRESS
-  - Issue: `#39`
-  - Branch: `chore/arch-005-error-model-api-mapper`
-  - PR: _to be added_
-  - Notes: Safe slice for auth/checkout/subscription using AppError + centralized API mapper.
+- [x] ARCH-005 - Standard error model + centralized API mapping
+- Status: DONE
+- Issue: #39
+- Branch: chore/arch-005-error-model-api-mapper
+- PR: #40
+- Merge SHA: <b72ef69>
+- Notes: AppError base + centralized mapper + auth/checkout/subscription adoption + Vitest coverage delivered.
+- Residual risks: Remaining modules outside safe slice still use legacy/local mapping and should migrate in ARCH-006.
 - [ ] ARCH-006 - Generic idempotency executor
   - Status: TODO
   - PR: _to be added_
@@ -89,9 +91,9 @@ Deliver structural improvements without blocking feature delivery.
 
 ## ADR References
 
-- [X] ADR-005 - Domain vs Application boundary
-- [X] ADR-006 - Validation strategy (schema-first, accepted)
-- [X] ADR-007 - Date/time and timezone policy (accepted)
+- [x] ADR-005 - Domain vs Application boundary
+- [x] ADR-006 - Validation strategy (schema-first, accepted)
+- [x] ADR-007 - Date/time and timezone policy (accepted)
 - [ ] ADR-008 - Error and response standardization (proposed)
 - [ ] ADR - Idempotency strategy
 - [ ] ADR - i18n baseline approach

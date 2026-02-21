@@ -16,7 +16,7 @@ Canonical references:
 - ARCH-002 completed (`#32`)
 - ARCH-003 completed (`#34`, merge `dc7404d`)
 - ARCH-004 completed (`#37`, merge `46e6804`)
-- ARCH-005 in progress (`#`, branch `chore/arch-005-error-model-api-mapper`)
+- ARCH-005 completed (`#40`, merge `b72ef69`)
 
 ## Target Architecture Principles
 
@@ -28,28 +28,29 @@ Canonical references:
 
 ## Current Prioritized Sequence
 
-1. ARCH-005: Standardized exception model and API response mapper (in progress)
-2. ARCH-006: Generic idempotency executor
+2. ARCH-006: Generic idempotency executor (in progress)
 3. ARCH-007: i18n foundation (`en_US`)
 
 ## Completed Slices
 
 ### ARCH-003
+
 - Introduced canonical Zod schemas in `packages/contracts/src/schemas`.
 - Inferred API payload types using `z.infer`.
 - Validated boundary inputs in API handlers and webhook envelope.
 
 ### ARCH-004
+
 - Defined timezone-safe datetime policy with Luxon.
 - Enforced explicit timezone offset at boundaries.
 - Standardized UTC timestamp generation utilities.
 
-## Next Execution Focus (ARCH-005)
+## Next execution focus: ARCH-006
 
-- Introduce `AppError` base and standardized subclasses in application.
-- Centralize API error mapping in `apps/api/src/http/errors.ts`.
-- Preserve backward compatibility (`message`) while adding `code`, `details`, `traceId`.
-- Add unit + integration coverage for error mapping in auth/checkout/subscription.
+- API error payload standardized with message + code + optional details/traceId.
+- Backward compatibility preserved via message field.
+- Central mapping reduces duplicated handler logic and inconsistency risk.
+- Remaining migration for modules outside safe slice is deferred to ARCH-006.
 
 ## Delivery Strategy
 
