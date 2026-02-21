@@ -18,6 +18,7 @@ import { parseOrThrowBadRequest } from "../http/validation.js";
 import type { ApiResponse, Headers } from "../http/types.js";
 import type { Membership } from "@grantledger/domain";
 import { getHeader } from "../http/headers.js";
+import { utcNowIso } from "@grantledger/shared";
 
 interface CreateSubscriptionResponse {
   subscriptionId: string;
@@ -109,7 +110,7 @@ export function handleCreateSubscription(
         tenantId: context.tenant.id,
         planId: parsedPayload.planId,
         status: "active",
-        createdAt: new Date().toISOString(),
+        createdAt: utcNowIso(),
       }),
     });
 

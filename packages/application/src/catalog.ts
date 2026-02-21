@@ -15,6 +15,7 @@ import {
   assertPublishedVersionImmutable,
   resolveEffectivePlanVersionAt,
 } from "@grantledger/domain";
+import { utcNowIso } from "@grantledger/shared";
 
 export class ConflictError extends Error {}
 export class NotFoundError extends Error {}
@@ -55,7 +56,7 @@ export async function createPlan(
     actor: meta.actor,
     reason: meta.reason,
     traceId: meta.traceId,
-    occurredAt: new Date().toISOString(),
+    occurredAt: utcNowIso(),
     metadata: { planId: plan.id },
   });
   return plan;
@@ -82,7 +83,7 @@ export async function createPlanVersion(
     actor: meta.actor,
     reason: meta.reason,
     traceId: meta.traceId,
-    occurredAt: new Date().toISOString(),
+    occurredAt: utcNowIso(),
     metadata: { planId: input.planId, versionId: version.id },
   });
   return version;
@@ -100,7 +101,7 @@ export async function publishPlanVersion(
   const next: PlanVersion = {
     ...version,
     status: "published",
-    publishedAt: new Date().toISOString(),
+    publishedAt: utcNowIso(),
   };
 
   await repo.savePlanVersion(next);
@@ -109,7 +110,7 @@ export async function publishPlanVersion(
     actor: meta.actor,
     reason: meta.reason,
     traceId: meta.traceId,
-    occurredAt: new Date().toISOString(),
+    occurredAt: utcNowIso(),
     metadata: { planId: input.planId, versionId: input.versionId },
   });
   return next;
@@ -131,7 +132,7 @@ export async function deactivatePlanVersion(
     actor: meta.actor,
     reason: meta.reason,
     traceId: meta.traceId,
-    occurredAt: new Date().toISOString(),
+    occurredAt: utcNowIso(),
     metadata: { planId: input.planId, versionId: input.versionId },
   });
   return next;

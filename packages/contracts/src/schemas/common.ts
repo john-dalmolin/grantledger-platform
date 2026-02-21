@@ -1,9 +1,12 @@
 import { z } from "zod";
+import { isIsoDateTimeWithOffset } from "@grantledger/shared";
 
 export const nonEmptyStringSchema = z.string().trim().min(1);
 
-// We keep compatibility broad for now; timezone strictness will be hardened in ARCH-004.
-export const dateTimeStringSchema = nonEmptyStringSchema;
+export const dateTimeStringSchema = nonEmptyStringSchema.refine(
+  isIsoDateTimeWithOffset,
+  "Datetime must be ISO-8601 with explicit timezone offset (Z or ±HH:MM)",
+);
 
 export const billingPeriodSchema = z.enum(["monthly", "yearly"]);
 

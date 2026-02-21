@@ -1,5 +1,6 @@
 import type { IdempotencyRecord } from "@grantledger/contracts";
 import { hashPayload } from "@grantledger/domain";
+import { utcNowIso } from "@grantledger/shared";
 
 export class MissingIdempotencyKeyError extends Error {
   constructor(message = "Idempotency-Key is required") {
@@ -20,7 +21,7 @@ export interface ProcessWithIdempotencyInput<TPayload, TResponse> {
   payload: TPayload;
   store: Map<string, IdempotencyRecord<TResponse>>;
   execute: () => TResponse;
-  now?: () => Date;
+  now?: () => string;
 }
 
 export interface ProcessWithIdempotencyResult<TResponse> {
@@ -50,7 +51,7 @@ export function processWithIdempotency<TPayload, TResponse>(
   }
 
   const response = input.execute();
-  const createdAt = (input.now ?? (() => new Date()))().toISOString();
+  const createdAt = (input.now ?? utcNowIso)();
 
   input.store.set(input.key, {
     key: input.key,

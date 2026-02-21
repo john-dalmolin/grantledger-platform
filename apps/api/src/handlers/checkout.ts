@@ -15,6 +15,7 @@ import {
 import { resolveContextFromHeaders } from "./auth.js";
 import { parseOrThrowBadRequest } from "../http/validation.js";
 import type { ApiResponse, Headers } from "../http/types.js";
+import { utcNowIso } from "@grantledger/shared";
 
 class FakePaymentProvider implements PaymentProvider {
   public readonly name = "fake" as const;
@@ -31,7 +32,7 @@ class FakePaymentProvider implements PaymentProvider {
       provider: this.name,
       sessionId,
       checkoutUrl: `https://pay.local/checkout/${sessionId}`,
-      createdAt: new Date().toISOString(),
+      createdAt: utcNowIso(),
     };
   }
 }
