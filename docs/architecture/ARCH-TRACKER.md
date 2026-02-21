@@ -85,12 +85,14 @@ Deliver structural improvements without blocking feature delivery.
   - Notes: AppError base + centralized mapper + auth/checkout/subscription adoption + Vitest coverage delivered.
   - Residual risks: Remaining modules outside safe slice still use legacy/local mapping and should migrate in ARCH-006.
 
-- [ ] ARCH-006 - Generic idempotency executor
-  - Status: IN_PROGRESS
+- [x] ARCH-006 - Generic idempotency executor
+  - Status: DONE
   - Issue: `#42`
   - Branch: `chore/arch-006-generic-idempotency-executor`
-  - PR: _to be added_
-  - Notes: Introduce generic async idempotency executor across auth/subscription/payment-webhook flows.
+  - PR: `#43`
+  - Merge SHA: `0706202f196d3c7969d39bc79e80a6e7d3cfe4aa`
+  - Notes: Implemented generic async idempotency executor, migrated subscription and auth flows, and adopted key-based webhook dedup through shared foundation.
+  - Residual risks: Payload-hash conflict detection for webhook flows remains intentionally out of scope in this stage.
 
 - [ ] ARCH-007 - i18n foundation (`en_US`)
   - Status: TODO
@@ -103,7 +105,7 @@ Deliver structural improvements without blocking feature delivery.
 - [x] ADR-006 - Validation strategy (schema-first, accepted)
 - [x] ADR-007 - Date/time and timezone policy (accepted)
 - [x] ADR-008 - Error and response standardization (accepted)
-- [ ] ADR-009 - Generic idempotency strategy (proposed)
+- [x] ADR-009 - Generic idempotency strategy (accepted)
 - [ ] ADR - i18n baseline approach
 
 ## Quality Gates (mandatory per PR)
