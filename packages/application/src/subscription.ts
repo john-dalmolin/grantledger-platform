@@ -3,6 +3,7 @@ import {
   CancelSubscriptionNowCommandInput,
   CreateSubscriptionCommandInput,
   DowngradeSubscriptionCommandInput,
+  IdempotencyRecord,
   Subscription,
   SubscriptionAuditEvent,
   SubscriptionCommandContext,
@@ -16,21 +17,40 @@ import {
   applyCancelNow,
   applyCancelAtPeriodEnd,
 } from "@grantledger/domain";
+import {
+  ConflictError,
+  NotFoundError,
+  ValidationError,
+} from "./errors.js";
+import {
+  AsyncIdempotencyStore,
+  executeIdempotent,
+  IdempotencyConflictError,
+  MissingIdempotencyKeyError,
+} from "./idempotency.js";
 
 export * from "./auth-context.js";
 
-export class SubscriptionNotFoundError extends Error {
+export class SubscriptionNotFoundError extends NotFoundError {
   constructor(message = "Subscription not found") {
     super(message);
   }
 }
-export class SubscriptionValidationError extends Error {}
-export class SubscriptionIdempotencyConflictError extends Error {
+export class SubscriptionValidationError extends ValidationError {
+  constructor(message = "Validation failed") {
+    super(message);
+  }
+}
+export class SubscriptionIdempotencyConflictError extends IdempotencyConflictError {
   constructor(message = "Same idempotency key with different payload") {
     super(message);
   }
 }
-export class SubscriptionConflictError extends Error {}
+export class SubscriptionConflictError extends ConflictError {
+  constructor(message = "Subscription conflict") {
+    super(message);
+  }
+}
 
 export interface SubscriptionRepository {
   findById(subscriptionId: string): Promise<Subscription | null>;
@@ -70,14 +90,40 @@ export interface SubscriptionUseCaseDeps {
   idempotencyStore: SubscriptionIdempotencyStore;
 }
 
-function fingerprint(payload: unknown): string {
-  return JSON.stringify(payload);
-}
-
-function requireIdempotencyKey(context: SubscriptionCommandContext): void {
+function requireIdempotencyKey(context: SubscriptionCommandContext): string {
   if (!context.idempotencyKey || context.idempotencyKey.trim().length === 0) {
     throw new SubscriptionValidationError("idempotencyKey is required");
   }
+  return context.idempotencyKey;
+}
+
+function toAsyncStore(
+  store: SubscriptionIdempotencyStore,
+): AsyncIdempotencyStore<Subscription> {
+  return {
+    async get(scope: string, key: string): Promise<IdempotencyRecord<Subscription> | null> {
+      const existing = await store.get(scope, key);
+      if (!existing) return null;
+
+      return {
+        key,
+        payloadHash: existing.fingerprint,
+        status: "completed",
+        response: existing.response,
+        createdAt: "",
+      };
+    },
+    async set(
+      scope: string,
+      key: string,
+      record: IdempotencyRecord<Subscription>,
+    ): Promise<void> {
+      await store.set(scope, key, {
+        fingerprint: record.payloadHash,
+        response: record.response,
+      });
+    },
+  };
 }
 
 async function runIdempotentCommand(
@@ -87,30 +133,29 @@ async function runIdempotentCommand(
   payloadForFingerprint: unknown,
   execute: () => Promise<Subscription>,
 ): Promise<Subscription> {
-  requireIdempotencyKey(context);
+  const idempotencyKey = requireIdempotencyKey(context);
 
-  const fp = fingerprint(payloadForFingerprint);
-  const existing = await deps.idempotencyStore.get(
-    command,
-    context.idempotencyKey,
-  );
+  try {
+    const { response } = await executeIdempotent({
+      scope: command,
+      key: idempotencyKey,
+      payload: payloadForFingerprint,
+      store: toAsyncStore(deps.idempotencyStore),
+      execute,
+    });
 
-  if (existing) {
-    if (existing.fingerprint !== fp) {
+    return response;
+  } catch (error) {
+    if (error instanceof MissingIdempotencyKeyError) {
+      throw new SubscriptionValidationError("idempotencyKey is required");
+    }
+    if (error instanceof IdempotencyConflictError) {
       throw new SubscriptionIdempotencyConflictError(
         "Same idempotency key with different payload",
       );
     }
-    return existing.response;
+    throw error;
   }
-
-  const response = await execute();
-  await deps.idempotencyStore.set(command, context.idempotencyKey, {
-    fingerprint: fp,
-    response,
-  });
-
-  return response;
 }
 
 async function audit(

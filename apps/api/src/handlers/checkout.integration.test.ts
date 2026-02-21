@@ -30,18 +30,19 @@ describe("checkout handler integration", () => {
 
     expect(response.status).toBe(400);
   });
-});
-it("returns 201 when payload is valid for authorized membership", async () => {
-  const response = await handleStartCheckout(
-    asHeaders({
-      "x-user-id": "u_1",
-      "x-tenant-id": "t_1",
-    }),
-    {
-      planId: "plan_basic",
-      billingPeriod: "monthly",
-    } as Parameters<typeof handleStartCheckout>[1],
-  );
 
-  expect(response.status).toBe(201);
+  it("returns 201 when payload is valid for authorized membership", async () => {
+    const response = await handleStartCheckout(
+      asHeaders({
+        "x-user-id": "u_1",
+        "x-tenant-id": "t_1",
+      }),
+      {
+        planId: "plan_basic",
+        billingPeriod: "monthly",
+      } as Parameters<typeof handleStartCheckout>[1],
+    );
+
+    expect(response.status).toBe(201);
+  });
 });

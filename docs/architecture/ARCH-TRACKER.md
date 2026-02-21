@@ -53,11 +53,13 @@ Deliver structural improvements without blocking feature delivery.
   - PR: `#31`
   - Merge SHA: `88787d7`
   - Notes: Added ADR-005 and baseline architecture guardrails/tracker.
+
 - [x] ARCH-002 - Modularize monolithic `index.ts`
   - Status: DONE
   - PR: `#32`
   - Merge SHA: `4cad15d`
   - Notes: Split monolithic indexes into context modules across domain/application/api.
+
 - [x] ARCH-003 - Schema-first validation with Zod
   - Status: DONE
   - Issue: `#30`
@@ -65,6 +67,7 @@ Deliver structural improvements without blocking feature delivery.
   - PR: `#34`
   - Merge SHA: `dc7404d`
   - Notes: Implemented schema-first boundary validation for subscription commands, checkout, and Stripe webhook parsing with canonical schemas in contracts.
+
 - [x] ARCH-004 - Timezone-safe date/time strategy (Luxon)
   - Status: DONE
   - Issue: `#36`
@@ -72,18 +75,23 @@ Deliver structural improvements without blocking feature delivery.
   - PR: `#37`
   - Merge SHA: `46e6804`
   - Notes: Strict ISO-8601 datetime with explicit timezone offset, Luxon shared utilities, and critical Date migration.
+
 - [x] ARCH-005 - Standard error model + centralized API mapping
-- Status: DONE
-- Issue: #39
-- Branch: chore/arch-005-error-model-api-mapper
-- PR: #40
-- Merge SHA: <b72ef69>
-- Notes: AppError base + centralized mapper + auth/checkout/subscription adoption + Vitest coverage delivered.
-- Residual risks: Remaining modules outside safe slice still use legacy/local mapping and should migrate in ARCH-006.
+  - Status: DONE
+  - Issue: `#39`
+  - Branch: `chore/arch-005-error-model-api-mapper`
+  - PR: `#40`
+  - Merge SHA: `b72ef69484dc898cc90d3feef4411b9e8e1914d6`
+  - Notes: AppError base + centralized mapper + auth/checkout/subscription adoption + Vitest coverage delivered.
+  - Residual risks: Remaining modules outside safe slice still use legacy/local mapping and should migrate in ARCH-006.
+
 - [ ] ARCH-006 - Generic idempotency executor
-  - Status: TODO
+  - Status: IN_PROGRESS
+  - Issue: `#42`
+  - Branch: `chore/arch-006-generic-idempotency-executor`
   - PR: _to be added_
-  - Notes: _to be added_
+  - Notes: Introduce generic async idempotency executor across auth/subscription/payment-webhook flows.
+
 - [ ] ARCH-007 - i18n foundation (`en_US`)
   - Status: TODO
   - PR: _to be added_
@@ -94,8 +102,8 @@ Deliver structural improvements without blocking feature delivery.
 - [x] ADR-005 - Domain vs Application boundary
 - [x] ADR-006 - Validation strategy (schema-first, accepted)
 - [x] ADR-007 - Date/time and timezone policy (accepted)
-- [ ] ADR-008 - Error and response standardization (proposed)
-- [ ] ADR - Idempotency strategy
+- [x] ADR-008 - Error and response standardization (accepted)
+- [ ] ADR-009 - Generic idempotency strategy (proposed)
 - [ ] ADR - i18n baseline approach
 
 ## Quality Gates (mandatory per PR)
@@ -103,7 +111,7 @@ Deliver structural improvements without blocking feature delivery.
 - [ ] `npm run typecheck`
 - [ ] `npm run build`
 - [ ] `npm run lint`
-- [ ] Architectural scope respected (no mixed feature work)
+- [ ] `Architectural scope respected (no mixed feature work)`
 
 ## Done Criteria for ARCH-000
 

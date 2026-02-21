@@ -3,7 +3,13 @@ import {
   CanonicalPaymentEvent,
   PaymentWebhookProcessResult,
   PaymentWebhookEnvelope,
+  IdempotencyRecord,
 } from "@grantledger/contracts";
+import {
+  AsyncIdempotencyStore,
+  executeIdempotent,
+  IdempotencyConflictError,
+} from "./idempotency.js";
 
 export class InvalidWebhookSignatureError extends Error {}
 export class DuplicateWebhookEventError extends Error {}
@@ -40,10 +46,34 @@ export interface CanonicalPaymentEventPublisher {
 }
 
 export interface PaymentWebhookDeps {
-  provider: PaymentWebhookProvider; //
+  provider: PaymentWebhookProvider;
   dedupStore: WebhookDedupStore;
   auditStore: WebhookAuditStore;
   eventPublisher: CanonicalPaymentEventPublisher;
+}
+
+function toAsyncStore(
+  dedupStore: WebhookDedupStore,
+): AsyncIdempotencyStore<CanonicalPaymentEvent> {
+  return {
+    async get(scope: string, key: string): Promise<IdempotencyRecord<CanonicalPaymentEvent> | null> {
+      const [provider] = scope.split(":") as [PaymentProviderName, string?];
+      const alreadyProcessed = await dedupStore.has(provider, key);
+      if (!alreadyProcessed) return null;
+
+      return {
+        key,
+        payloadHash: "null",
+        status: "completed",
+        response: {} as CanonicalPaymentEvent,
+        createdAt: "",
+      };
+    },
+    async set(scope: string, key: string): Promise<void> {
+      const [provider] = scope.split(":") as [PaymentProviderName, string?];
+      await dedupStore.markProcessed(provider, key);
+    },
+  };
 }
 
 export async function processProviderWebhook(
@@ -57,11 +87,20 @@ export async function processProviderWebhook(
       traceId: input.traceId,
     });
 
-    const alreadyProcessed = await deps.dedupStore.has(
-      event.provider,
-      event.eventId,
-    );
-    if (alreadyProcessed) {
+    const scope = `${event.provider}:webhook`;
+
+    const execution = await executeIdempotent({
+      scope,
+      key: event.eventId,
+      payload: null,
+      store: toAsyncStore(deps.dedupStore),
+      execute: async () => {
+        await deps.eventPublisher.publish(event);
+        return event;
+      },
+    });
+
+    if (execution.replayed) {
       await deps.auditStore.saveRaw({
         provider: event.provider,
         traceId: input.traceId,
@@ -80,9 +119,6 @@ export async function processProviderWebhook(
         reason: "Duplicate webhook event",
       };
     }
-
-    await deps.dedupStore.markProcessed(event.provider, event.eventId);
-    await deps.eventPublisher.publish(event);
 
     await deps.auditStore.saveRaw({
       provider: event.provider,
@@ -112,7 +148,10 @@ export async function processProviderWebhook(
       reason,
     });
 
-    if (error instanceof InvalidWebhookSignatureError) {
+    if (
+      error instanceof InvalidWebhookSignatureError ||
+      error instanceof IdempotencyConflictError
+    ) {
       throw error;
     }
 
