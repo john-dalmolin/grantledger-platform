@@ -71,30 +71,28 @@ Deliver structural improvements without blocking feature delivery.
   - Branch: `chore/arch-004-timezone-luxon-policy`
   - PR: `#37`
   - Merge SHA: `46e6804`
-  - Merge SHA: `46e6804`
   - Notes: Strict ISO-8601 datetime with explicit timezone offset, Luxon shared utilities, and critical Date migration.
 - [ ] ARCH-005 - Standard error model + API response mapping
-  - Status: TODO
-  - PR: `#37`
-  - Merge SHA: `46e6804`
-  - Notes: _to be added_
+  - Status: IN_PROGRESS
+  - Issue: `#`
+  - Branch: `chore/arch-005-error-model-api-mapper`
+  - PR: _to be added_
+  - Notes: Safe slice for auth/checkout/subscription using AppError + centralized API mapper.
 - [ ] ARCH-006 - Generic idempotency executor
   - Status: TODO
-  - PR: `#37`
-  - Merge SHA: `46e6804`
+  - PR: _to be added_
   - Notes: _to be added_
 - [ ] ARCH-007 - i18n foundation (`en_US`)
   - Status: TODO
-  - PR: `#37`
-  - Merge SHA: `46e6804`
+  - PR: _to be added_
   - Notes: _to be added_
 
 ## ADR References
 
 - [x] ADR-005 - Domain vs Application boundary
 - [x] ADR-006 - Validation strategy (schema-first, accepted)
-- [ ] ADR-007 - Date/time and timezone policy (accepted)
-- [ ] ADR - Error and response standardization
+- [x] ADR-007 - Date/time and timezone policy (accepted)
+- [ ] ADR-008 - Error and response standardization (proposed)
 - [ ] ADR - Idempotency strategy
 - [ ] ADR - i18n baseline approach
 

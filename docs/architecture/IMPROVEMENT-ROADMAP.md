@@ -16,6 +16,7 @@ Canonical references:
 - ARCH-002 completed (`#32`)
 - ARCH-003 completed (`#34`, merge `dc7404d`)
 - ARCH-004 completed (`#37`, merge `46e6804`)
+- ARCH-005 in progress (`#`, branch `chore/arch-005-error-model-api-mapper`)
 
 ## Target Architecture Principles
 
@@ -27,25 +28,28 @@ Canonical references:
 
 ## Current Prioritized Sequence
 
-1. ARCH-004: Time strategy with Luxon + UTC policy (completed)
-2. ARCH-005: Standardized exception model and API response mapper
-3. ARCH-006: Generic idempotency executor
-4. ARCH-007: i18n foundation (`en_US`)
+1. ARCH-005: Standardized exception model and API response mapper (in progress)
+2. ARCH-006: Generic idempotency executor
+3. ARCH-007: i18n foundation (`en_US`)
 
-## Completed Slice (ARCH-003)
+## Completed Slices
 
-- Introduce canonical Zod schemas in `packages/contracts/src/schemas`.
-- Infer API payload types using `z.infer`.
-- Validate boundary inputs in API handlers and webhook envelope.
-- Preserve existing behavior and response compatibility.
+### ARCH-003
+- Introduced canonical Zod schemas in `packages/contracts/src/schemas`.
+- Inferred API payload types using `z.infer`.
+- Validated boundary inputs in API handlers and webhook envelope.
 
-## Next Execution Focus (ARCH-004)
+### ARCH-004
+- Defined timezone-safe datetime policy with Luxon.
+- Enforced explicit timezone offset at boundaries.
+- Standardized UTC timestamp generation utilities.
 
-- Define timezone-safe date/time policy.
-- Introduce Luxon-backed boundary/date parsing strategy.
-- Enforce explicit timezone offset at boundary validation.
-- Document UTC normalization and offset handling rules.
-- Residual risk: strict rollout will reject legacy timestamps without timezone offset.
+## Next Execution Focus (ARCH-005)
+
+- Introduce `AppError` base and standardized subclasses in application.
+- Centralize API error mapping in `apps/api/src/http/errors.ts`.
+- Preserve backward compatibility (`message`) while adding `code`, `details`, `traceId`.
+- Add unit + integration coverage for error mapping in auth/checkout/subscription.
 
 ## Delivery Strategy
 
@@ -56,6 +60,7 @@ Canonical references:
   - `npm run typecheck`
   - `npm run build`
   - `npm run lint`
+  - `npm run test`
 
 ## Mandatory Governance Workflow (Always)
 
