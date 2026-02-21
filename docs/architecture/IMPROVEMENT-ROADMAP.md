@@ -15,6 +15,7 @@ Canonical references:
 - ARCH-001 completed (`#31`)
 - ARCH-002 completed (`#32`)
 - ARCH-003 completed (`#34`, merge `dc7404d`)
+- ARCH-004 in progress (`#`, branch `chore/arch-004-timezone-luxon-policy`)
 
 ## Target Architecture Principles
 
@@ -26,11 +27,10 @@ Canonical references:
 
 ## Current Prioritized Sequence
 
-1. ARCH-003: Schema-first validation with Zod (completed)
-2. ARCH-004: Time strategy with Luxon + UTC policy (next)
-3. ARCH-005: Standardized exception model and API response mapper
-4. ARCH-006: Generic idempotency executor
-5. ARCH-007: i18n foundation (`en_US`)
+1. ARCH-004: Time strategy with Luxon + UTC policy (in progress)
+2. ARCH-005: Standardized exception model and API response mapper
+3. ARCH-006: Generic idempotency executor
+4. ARCH-007: i18n foundation (`en_US`)
 
 ## Completed Slice (ARCH-003)
 
@@ -43,7 +43,9 @@ Canonical references:
 
 - Define timezone-safe date/time policy.
 - Introduce Luxon-backed boundary/date parsing strategy.
+- Enforce explicit timezone offset at boundary validation.
 - Document UTC normalization and offset handling rules.
+- Residual risk: strict rollout will reject legacy timestamps without timezone offset.
 
 ## Delivery Strategy
 
