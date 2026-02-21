@@ -1,6 +1,5 @@
 # ADR-008: Standard Error Model and Centralized API Mapping
 
-
 ## Context
 
 Current API handlers map errors independently with duplicated `instanceof` chains.
@@ -13,9 +12,9 @@ Adopt an application-level `AppError` base class and centralize transport mappin
 - `AppError` carries: `code`, `httpStatus`, `details?`, `cause?`.
 - Application/domain throw typed errors; API maps via a single mapper.
 - API error response remains backward-compatible with `message` and evolves with:
-  - `code` (required)
-  - `details` (optional)
-  - `traceId` (optional)
+  - `code`
+  - `details`
+  - `traceId`
 
 ## Consequences
 
