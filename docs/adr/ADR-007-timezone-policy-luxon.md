@@ -48,5 +48,4 @@ Adopt Luxon-based datetime utilities as the canonical implementation for time pa
 
 ## Follow-up
 
-- Mark this ADR as `Accepted` when ARCH-004 is merged.
 - Reuse this policy in ARCH-005 for standardized error-to-response mapping.

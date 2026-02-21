@@ -65,30 +65,35 @@ Deliver structural improvements without blocking feature delivery.
   - PR: `#34`
   - Merge SHA: `dc7404d`
   - Notes: Implemented schema-first boundary validation for subscription commands, checkout, and Stripe webhook parsing with canonical schemas in contracts.
-- [ ] ARCH-004 - Timezone-safe date/time strategy (Luxon)
-  - Status: IN_PROGRESS
+- [x] ARCH-004 - Timezone-safe date/time strategy (Luxon)
+  - Status: DONE
   - Issue: `#36`
   - Branch: `chore/arch-004-timezone-luxon-policy`
-  - PR: _to be added_
+  - PR: `#37`
+  - Merge SHA: `46e6804`
+  - Merge SHA: `46e6804`
   - Notes: Strict ISO-8601 datetime with explicit timezone offset, Luxon shared utilities, and critical Date migration.
 - [ ] ARCH-005 - Standard error model + API response mapping
   - Status: TODO
-  - PR: _to be added_
+  - PR: `#37`
+  - Merge SHA: `46e6804`
   - Notes: _to be added_
 - [ ] ARCH-006 - Generic idempotency executor
   - Status: TODO
-  - PR: _to be added_
+  - PR: `#37`
+  - Merge SHA: `46e6804`
   - Notes: _to be added_
 - [ ] ARCH-007 - i18n foundation (`en_US`)
   - Status: TODO
-  - PR: _to be added_
+  - PR: `#37`
+  - Merge SHA: `46e6804`
   - Notes: _to be added_
 
 ## ADR References
 
 - [x] ADR-005 - Domain vs Application boundary
 - [x] ADR-006 - Validation strategy (schema-first, accepted)
-- [ ] ADR-007 - Date/time and timezone policy (proposed)
+- [ ] ADR-007 - Date/time and timezone policy (accepted)
 - [ ] ADR - Error and response standardization
 - [ ] ADR - Idempotency strategy
 - [ ] ADR - i18n baseline approach

@@ -15,7 +15,7 @@ Canonical references:
 - ARCH-001 completed (`#31`)
 - ARCH-002 completed (`#32`)
 - ARCH-003 completed (`#34`, merge `dc7404d`)
-- ARCH-004 in progress (`#36`, branch `chore/arch-004-timezone-luxon-policy`)
+- ARCH-004 completed (`#37`, merge `46e6804`)
 
 ## Target Architecture Principles
 
@@ -27,7 +27,7 @@ Canonical references:
 
 ## Current Prioritized Sequence
 
-1. ARCH-004: Time strategy with Luxon + UTC policy (in progress)
+1. ARCH-004: Time strategy with Luxon + UTC policy (completed)
 2. ARCH-005: Standardized exception model and API response mapper
 3. ARCH-006: Generic idempotency executor
 4. ARCH-007: i18n foundation (`en_US`)
