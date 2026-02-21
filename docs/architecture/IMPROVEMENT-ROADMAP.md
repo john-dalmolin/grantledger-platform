@@ -18,6 +18,7 @@ Canonical references:
 - ARCH-004 completed (`#37`, merge `46e6804`)
 - ARCH-005 completed (`#40`, merge `b72ef69`)
 - ARCH-006 completed (`#43`, merge `0706202`)
+- ARCH-007 in progress (`#45`, branch `chore/arch-007-i18n-foundation`)
 
 ## Target Architecture Principles
 
@@ -29,13 +30,13 @@ Canonical references:
 
 ## Current Prioritized Sequence
 
-1. ARCH-007: i18n foundation (`en_US`)
+1. ARCH-007: i18n foundation (`en_US`) (in progress)
 
 ## Next execution focus: ARCH-007
 
-- Build i18n baseline structure and message catalog strategy.
-- Keep runtime compatibility while introducing translation layer boundaries.
-- Reuse standardized error contract for localized message mapping in future steps.
+- Introduce translation boundary in API/application layers without business-rule changes.
+- Add canonical message catalog with stable keys and `en_US` baseline.
+- Prepare locale-aware error/message rendering while preserving backward compatibility.
 
 ## Delivery Strategy
 

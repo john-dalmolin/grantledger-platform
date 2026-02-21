@@ -13,7 +13,7 @@ import {
 import { resolveContextFromHeaders } from "./auth.js";
 import { parseOrThrowBadRequest } from "../http/validation.js";
 import type { ApiResponse, Headers } from "../http/types.js";
-import { utcNowIso } from "@grantledger/shared";
+import { t, utcNowIso } from "@grantledger/shared";
 import { getHeader } from "../http/headers.js";
 
 class FakePaymentProvider implements PaymentProvider {
@@ -38,10 +38,16 @@ class FakePaymentProvider implements PaymentProvider {
 
 const fakePaymentProvider = new FakePaymentProvider();
 
+function localeFromHeaders(headers: Headers): string | undefined {
+  return getHeader(headers, "accept-language") ?? undefined;
+}
+
 export async function handleStartCheckout(
   headers: Headers,
   payload: StartCheckoutPayload,
 ): Promise<ApiResponse> {
+  const locale = localeFromHeaders(headers);
+
   try {
     const context = resolveContextFromHeaders(headers);
 
@@ -70,7 +76,7 @@ export async function handleStartCheckout(
     return {
       status: 201,
       body: {
-        message: "Checkout session created",
+        message: t("checkout.session_created", locale ? { locale } : undefined),
         data: checkout,
         context,
       },
@@ -79,6 +85,7 @@ export async function handleStartCheckout(
     return toApiErrorResponse(
       error,
       getHeader(headers, "x-trace-id") ?? undefined,
+      locale,
     );
   }
 }

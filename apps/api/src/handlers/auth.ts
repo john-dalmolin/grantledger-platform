@@ -15,7 +15,7 @@ import { parseOrThrowBadRequest } from "../http/validation.js";
 import type { ApiResponse, Headers } from "../http/types.js";
 import type { Membership } from "@grantledger/domain";
 import { getHeader } from "../http/headers.js";
-import { utcNowIso } from "@grantledger/shared";
+import { t, utcNowIso } from "@grantledger/shared";
 
 interface CreateSubscriptionResponse {
   subscriptionId: string;
@@ -35,22 +35,25 @@ const idempotencyStore = new Map<
   IdempotencyRecord<CreateSubscriptionResponse>
 >();
 
-const authIdempotencyStore: AsyncIdempotencyStore<CreateSubscriptionResponse> =
-  {
-    async get(
-      scope: string,
-      key: string,
-    ): Promise<IdempotencyRecord<CreateSubscriptionResponse> | null> {
-      return idempotencyStore.get(`${scope}:${key}`) ?? null;
-    },
-    async set(
-      scope: string,
-      key: string,
-      record: IdempotencyRecord<CreateSubscriptionResponse>,
-    ): Promise<void> {
-      idempotencyStore.set(`${scope}:${key}`, record);
-    },
-  };
+const authIdempotencyStore: AsyncIdempotencyStore<CreateSubscriptionResponse> = {
+  async get(
+    scope: string,
+    key: string,
+  ): Promise<IdempotencyRecord<CreateSubscriptionResponse> | null> {
+    return idempotencyStore.get(`${scope}:${key}`) ?? null;
+  },
+  async set(
+    scope: string,
+    key: string,
+    record: IdempotencyRecord<CreateSubscriptionResponse>,
+  ): Promise<void> {
+    idempotencyStore.set(`${scope}:${key}`, record);
+  },
+};
+
+function localeFromHeaders(headers: Headers): string | undefined {
+  return getHeader(headers, "accept-language") ?? undefined;
+}
 
 export function resolveContextFromHeaders(headers: Headers): RequestContext {
   const userId = getHeader(headers, "x-user-id");
@@ -69,13 +72,15 @@ export function resolveContextFromHeaders(headers: Headers): RequestContext {
 }
 
 export function handleProtectedRequest(headers: Headers): ApiResponse {
+  const locale = localeFromHeaders(headers);
+
   try {
     const context = resolveContextFromHeaders(headers);
 
     return {
       status: 200,
       body: {
-        message: "Authorized",
+        message: t("auth.authorized", locale ? { locale } : undefined),
         context,
       },
     };
@@ -83,6 +88,7 @@ export function handleProtectedRequest(headers: Headers): ApiResponse {
     return toApiErrorResponse(
       error,
       getHeader(headers, "x-trace-id") ?? undefined,
+      locale,
     );
   }
 }
@@ -91,6 +97,8 @@ export async function handleCreateSubscription(
   headers: Headers,
   payload: CreateSubscriptionPayload,
 ): Promise<ApiResponse> {
+  const locale = localeFromHeaders(headers);
+
   try {
     const context = resolveContextFromHeaders(headers);
     const parsedPayload = parseOrThrowBadRequest(
@@ -122,7 +130,9 @@ export async function handleCreateSubscription(
     return {
       status: replayed ? 200 : 201,
       body: {
-        message: replayed ? "Replayed" : "Created",
+        message: replayed
+          ? t("subscription.replayed", locale ? { locale } : undefined)
+          : t("subscription.created", locale ? { locale } : undefined),
         data: response,
         context,
       },
@@ -131,6 +141,7 @@ export async function handleCreateSubscription(
     return toApiErrorResponse(
       error,
       getHeader(headers, "x-trace-id") ?? undefined,
+      locale,
     );
   }
 }
