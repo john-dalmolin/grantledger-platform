@@ -15,11 +15,9 @@ import {
   assertPublishedVersionImmutable,
   resolveEffectivePlanVersionAt,
 } from "@grantledger/domain";
-import { utcNowIso } from "@grantledger/shared";
 
-export class ConflictError extends Error {}
-export class NotFoundError extends Error {}
-export class ValidationError extends Error {}
+import { utcNowIso } from "@grantledger/shared";
+import { NotFoundError } from "./errors.js";
 
 export interface PlanCatalogRepository {
   createPlan(input: CreatePlanInput): Promise<Plan>;

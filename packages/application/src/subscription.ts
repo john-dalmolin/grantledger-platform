@@ -19,9 +19,17 @@ import {
 
 export * from "./auth-context.js";
 
-export class SubscriptionNotFoundError extends Error {}
+export class SubscriptionNotFoundError extends Error {
+  constructor(message = "Subscription not found") {
+    super(message);
+  }
+}
 export class SubscriptionValidationError extends Error {}
-export class SubscriptionIdempotencyConflictError extends Error {}
+export class SubscriptionIdempotencyConflictError extends Error {
+  constructor(message = "Same idempotency key with different payload") {
+    super(message);
+  }
+}
 export class SubscriptionConflictError extends Error {}
 
 export interface SubscriptionRepository {
