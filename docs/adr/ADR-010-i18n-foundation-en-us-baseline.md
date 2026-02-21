@@ -41,4 +41,3 @@ Introduce an i18n foundation with `en_US` baseline and stable message keys.
 
 ## Follow-up
 
-- Mark this ADR as `Accepted` when ARCH-007 is merged.

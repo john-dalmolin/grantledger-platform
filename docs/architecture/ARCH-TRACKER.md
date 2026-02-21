@@ -94,11 +94,12 @@ Deliver structural improvements without blocking feature delivery.
   - Notes: Implemented generic async idempotency executor, migrated subscription and auth flows, and adopted key-based webhook dedup through shared foundation.
   - Residual risks: Payload-hash conflict detection for webhook flows remains intentionally out of scope in this stage.
 
-- [ ] ARCH-007 - i18n foundation (`en_US`)
-  - Status: IN_PROGRESS
+- [x] ARCH-007 - i18n foundation (`en_US`)
+  - Status: DONE
   - Issue: `#45`
   - Branch: `chore/arch-007-i18n-foundation`
-  - PR: _to be added_
+  - PR: `#46`
+  - Merge SHA: `64e2d3d3b43943459944b36dc52af2df039a5724`
   - Notes: _to be added_
 
 ## ADR References
