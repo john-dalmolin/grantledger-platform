@@ -1,5 +1,6 @@
 import { AppError } from "@grantledger/application";
 import { SubscriptionDomainError } from "@grantledger/domain";
+import { t } from "@grantledger/shared";
 
 import type { ApiResponse } from "./types.js";
 
@@ -20,6 +21,7 @@ function attachTraceId(
 export function toApiErrorResponse(
   error: unknown,
   traceId?: string,
+  locale?: string,
 ): ApiResponse {
   if (error instanceof AppError) {
     return {
@@ -52,7 +54,7 @@ export function toApiErrorResponse(
     status: 500,
     body: attachTraceId(
       {
-        message: "Unexpected error",
+        message: t("error.unexpected", locale ? { locale } : undefined),
         code: "INTERNAL_ERROR",
       },
       traceId,

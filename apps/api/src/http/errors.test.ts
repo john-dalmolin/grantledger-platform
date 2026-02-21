@@ -26,8 +26,8 @@ describe("toApiErrorResponse", () => {
     });
   });
 
-  it("maps unknown error to 500 INTERNAL_ERROR", () => {
-    const response = toApiErrorResponse(new Error("boom"));
+  it("maps unknown error to 500 INTERNAL_ERROR with i18n fallback", () => {
+    const response = toApiErrorResponse(new Error("boom"), undefined, "en-US");
 
     expect(response.status).toBe(500);
     expect(response.body).toMatchObject({
