@@ -67,7 +67,7 @@ Deliver structural improvements without blocking feature delivery.
   - Notes: Implemented schema-first boundary validation for subscription commands, checkout, and Stripe webhook parsing with canonical schemas in contracts.
 - [ ] ARCH-004 - Timezone-safe date/time strategy (Luxon)
   - Status: IN_PROGRESS
-  - Issue: `#`
+  - Issue: `#36`
   - Branch: `chore/arch-004-timezone-luxon-policy`
   - PR: _to be added_
   - Notes: Strict ISO-8601 datetime with explicit timezone offset, Luxon shared utilities, and critical Date migration.

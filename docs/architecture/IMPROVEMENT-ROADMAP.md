@@ -15,7 +15,7 @@ Canonical references:
 - ARCH-001 completed (`#31`)
 - ARCH-002 completed (`#32`)
 - ARCH-003 completed (`#34`, merge `dc7404d`)
-- ARCH-004 in progress (`#`, branch `chore/arch-004-timezone-luxon-policy`)
+- ARCH-004 in progress (`#36`, branch `chore/arch-004-timezone-luxon-policy`)
 
 ## Target Architecture Principles
 
