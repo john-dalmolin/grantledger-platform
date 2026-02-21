@@ -1,9 +1,5 @@
+import { toApiErrorResponse } from "../http/errors.js";
 import {
-  AuthenticationError,
-  BadRequestError,
-  ForbiddenError,
-  IdempotencyConflictError,
-  MissingIdempotencyKeyError,
   processWithIdempotency,
   resolveRequestContext,
 } from "@grantledger/application";
@@ -66,19 +62,10 @@ export function handleProtectedRequest(headers: Headers): ApiResponse {
       },
     };
   } catch (error) {
-    if (error instanceof AuthenticationError) {
-      return { status: 401, body: { message: error.message } };
-    }
-
-    if (error instanceof ForbiddenError) {
-      return { status: 403, body: { message: error.message } };
-    }
-
-    if (error instanceof BadRequestError) {
-      return { status: 400, body: { message: error.message } };
-    }
-
-    return { status: 500, body: { message: "Unexpected error" } };
+    return toApiErrorResponse(
+      error,
+      getHeader(headers, "x-trace-id") ?? undefined,
+    );
   }
 }
 
@@ -123,26 +110,9 @@ export function handleCreateSubscription(
       },
     };
   } catch (error) {
-    if (error instanceof MissingIdempotencyKeyError) {
-      return { status: 400, body: { message: error.message } };
-    }
-
-    if (error instanceof IdempotencyConflictError) {
-      return { status: 409, body: { message: error.message } };
-    }
-
-    if (error instanceof AuthenticationError) {
-      return { status: 401, body: { message: error.message } };
-    }
-
-    if (error instanceof ForbiddenError) {
-      return { status: 403, body: { message: error.message } };
-    }
-
-    if (error instanceof BadRequestError) {
-      return { status: 400, body: { message: error.message } };
-    }
-
-    return { status: 500, body: { message: "Unexpected error" } };
+    return toApiErrorResponse(
+      error,
+      getHeader(headers, "x-trace-id") ?? undefined,
+    );
   }
 }
