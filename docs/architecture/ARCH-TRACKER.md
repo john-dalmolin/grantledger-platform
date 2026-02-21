@@ -95,7 +95,9 @@ Deliver structural improvements without blocking feature delivery.
   - Residual risks: Payload-hash conflict detection for webhook flows remains intentionally out of scope in this stage.
 
 - [ ] ARCH-007 - i18n foundation (`en_US`)
-  - Status: TODO
+  - Status: IN_PROGRESS
+  - Issue: `#45`
+  - Branch: `chore/arch-007-i18n-foundation`
   - PR: _to be added_
   - Notes: _to be added_
 
