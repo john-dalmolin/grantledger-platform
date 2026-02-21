@@ -1,0 +1,49 @@
+import { describe, expect, it } from "vitest";
+import { BadRequestError } from "@grantledger/application";
+import { SubscriptionDomainError } from "@grantledger/domain";
+import { toApiErrorResponse } from "./errors.js";
+
+describe("toApiErrorResponse", () => {
+  it("maps AppError using status/code/message", () => {
+    const error = new BadRequestError("Invalid payload");
+    const response = toApiErrorResponse(error);
+
+    expect(response.status).toBe(400);
+    expect(response.body).toMatchObject({
+      message: "Invalid payload",
+      code: "BAD_REQUEST",
+    });
+  });
+
+  it("maps SubscriptionDomainError to 409 DOMAIN_CONFLICT", () => {
+    const error = new SubscriptionDomainError("Invalid transition");
+    const response = toApiErrorResponse(error);
+
+    expect(response.status).toBe(409);
+    expect(response.body).toMatchObject({
+      message: "Invalid transition",
+      code: "DOMAIN_CONFLICT",
+    });
+  });
+
+  it("maps unknown error to 500 INTERNAL_ERROR", () => {
+    const response = toApiErrorResponse(new Error("boom"));
+
+    expect(response.status).toBe(500);
+    expect(response.body).toMatchObject({
+      message: "Unexpected error",
+      code: "INTERNAL_ERROR",
+    });
+  });
+
+  it("attaches traceId when provided", () => {
+    const response = toApiErrorResponse(
+      new BadRequestError("Invalid payload"),
+      "trace-123",
+    );
+
+    expect(response.body).toMatchObject({
+      traceId: "trace-123",
+    });
+  });
+});

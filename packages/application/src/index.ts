@@ -1,3 +1,4 @@
+export * from "./errors.js";
 export * from "./catalog.js";
 export * from "./auth-context.js";
 export * from "./idempotency.js";

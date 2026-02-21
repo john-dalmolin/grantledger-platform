@@ -1,3 +1,4 @@
+import { toApiErrorResponse } from "../http/errors.js";
 import {
   cancelSubscriptionAtPeriodEnd,
   cancelSubscriptionNow,
@@ -5,16 +6,11 @@ import {
   downgradeSubscription,
   type SubscriptionAuditLogger,
   type SubscriptionEventPublisher,
-  SubscriptionConflictError,
   type SubscriptionIdempotencyStore,
   type SubscriptionIdempotencyStoreRecord,
-  SubscriptionIdempotencyConflictError,
-  SubscriptionNotFoundError,
   type SubscriptionRepository,
   type SubscriptionUseCaseDeps,
-  SubscriptionValidationError,
   upgradeSubscription,
-  BadRequestError,
 } from "@grantledger/application";
 import type {
   CancelSubscriptionAtPeriodEndCommandInput,
@@ -35,7 +31,6 @@ import {
 } from "@grantledger/contracts";
 
 import { parseOrThrowBadRequest } from "../http/validation.js";
-import { SubscriptionDomainError } from "@grantledger/domain";
 import { randomUUID } from "crypto";
 import { utcNowIso } from "@grantledger/shared";
 
@@ -114,33 +109,6 @@ function buildCommandContext(headers: Headers, reason: string) {
   };
 }
 
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Unknown error";
-}
-
-function toApiError(error: unknown): ApiResponse {
-  if (
-    error instanceof BadRequestError ||
-    error instanceof SubscriptionValidationError
-  ) {
-    return { status: 400, body: { message: getErrorMessage(error) } };
-  }
-
-  if (error instanceof SubscriptionNotFoundError) {
-    return { status: 404, body: { message: getErrorMessage(error) } };
-  }
-
-  if (
-    error instanceof SubscriptionConflictError ||
-    error instanceof SubscriptionIdempotencyConflictError ||
-    error instanceof SubscriptionDomainError
-  ) {
-    return { status: 409, body: { message: getErrorMessage(error) } };
-  }
-
-  return { status: 500, body: { message: "Unexpected error" } };
-}
-
 export async function handleCreateSubscriptionCommand(
   headers: Headers,
   payload: unknown,
@@ -173,7 +141,10 @@ export async function handleCreateSubscriptionCommand(
     const result = await createSubscription(subscriptionDeps, input);
     return { status: 201, body: result };
   } catch (error) {
-    return toApiError(error);
+    return toApiErrorResponse(
+      error,
+      getHeader(headers, "x-trace-id") ?? undefined,
+    );
   }
 }
 
@@ -201,7 +172,10 @@ export async function handleUpgradeSubscriptionCommand(
     const result = await upgradeSubscription(subscriptionDeps, input);
     return { status: 200, body: result };
   } catch (error) {
-    return toApiError(error);
+    return toApiErrorResponse(
+      error,
+      getHeader(headers, "x-trace-id") ?? undefined,
+    );
   }
 }
 
@@ -229,7 +203,10 @@ export async function handleDowngradeSubscriptionCommand(
     const result = await downgradeSubscription(subscriptionDeps, input);
     return { status: 200, body: result };
   } catch (error) {
-    return toApiError(error);
+    return toApiErrorResponse(
+      error,
+      getHeader(headers, "x-trace-id") ?? undefined,
+    );
   }
 }
 
@@ -256,7 +233,10 @@ export async function handleCancelSubscriptionNowCommand(
     const result = await cancelSubscriptionNow(subscriptionDeps, input);
     return { status: 200, body: result };
   } catch (error) {
-    return toApiError(error);
+    return toApiErrorResponse(
+      error,
+      getHeader(headers, "x-trace-id") ?? undefined,
+    );
   }
 }
 
@@ -282,6 +262,9 @@ export async function handleCancelSubscriptionAtPeriodEndCommand(
     const result = await cancelSubscriptionAtPeriodEnd(subscriptionDeps, input);
     return { status: 200, body: result };
   } catch (error) {
-    return toApiError(error);
+    return toApiErrorResponse(
+      error,
+      getHeader(headers, "x-trace-id") ?? undefined,
+    );
   }
 }

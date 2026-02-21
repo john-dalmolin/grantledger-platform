@@ -1,18 +1,25 @@
 import type { IdempotencyRecord } from "@grantledger/contracts";
 import { hashPayload } from "@grantledger/domain";
 import { utcNowIso } from "@grantledger/shared";
+import { AppError } from "./errors.js";
 
-export class MissingIdempotencyKeyError extends Error {
+export class MissingIdempotencyKeyError extends AppError {
   constructor(message = "Idempotency-Key is required") {
-    super(message);
-    this.name = "MissingIdempotencyKeyError";
+    super({
+      message,
+      code: "MISSING_IDEMPOTENCY_KEY",
+      httpStatus: 400,
+    });
   }
 }
 
-export class IdempotencyConflictError extends Error {
+export class IdempotencyConflictError extends AppError {
   constructor(message = "Idempotency key reuse with different payload") {
-    super(message);
-    this.name = "IdempotencyConflictError";
+    super({
+      message,
+      code: "IDEMPOTENCY_CONFLICT",
+      httpStatus: 409,
+    });
   }
 }
 

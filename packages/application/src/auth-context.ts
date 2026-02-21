@@ -3,27 +3,13 @@ import {
   hasActiveMembershipForTenant,
   type Membership,
 } from "@grantledger/domain";
+import {
+  AuthenticationError,
+  BadRequestError,
+  ForbiddenError,
+} from "./errors.js";
 
-export class AuthenticationError extends Error {
-  constructor(message = "User is not authenticated") {
-    super(message);
-    this.name = "AuthenticationError";
-  }
-}
-
-export class ForbiddenError extends Error {
-  constructor(message = "User has no access to this tenant") {
-    super(message);
-    this.name = "ForbiddenError";
-  }
-}
-
-export class BadRequestError extends Error {
-  constructor(message = "Invalid request input") {
-    super(message);
-    this.name = "BadRequestError";
-  }
-}
+export { AuthenticationError, BadRequestError, ForbiddenError } from "./errors.js";
 
 export interface ResolveRequestContextInput {
   user: AuthenticatedUser | null;

@@ -1,7 +1,5 @@
+import { toApiErrorResponse } from "../http/errors.js";
 import {
-  AuthenticationError,
-  BadRequestError,
-  ForbiddenError,
   startSubscriptionCheckout,
   type PaymentProvider,
 } from "@grantledger/application";
@@ -16,6 +14,7 @@ import { resolveContextFromHeaders } from "./auth.js";
 import { parseOrThrowBadRequest } from "../http/validation.js";
 import type { ApiResponse, Headers } from "../http/types.js";
 import { utcNowIso } from "@grantledger/shared";
+import { getHeader } from "../http/headers.js";
 
 class FakePaymentProvider implements PaymentProvider {
   public readonly name = "fake" as const;
@@ -77,18 +76,9 @@ export async function handleStartCheckout(
       },
     };
   } catch (error) {
-    if (error instanceof AuthenticationError) {
-      return { status: 401, body: { message: error.message } };
-    }
-
-    if (error instanceof ForbiddenError) {
-      return { status: 403, body: { message: error.message } };
-    }
-
-    if (error instanceof BadRequestError) {
-      return { status: 400, body: { message: error.message } };
-    }
-
-    return { status: 500, body: { message: "Unexpected error" } };
+    return toApiErrorResponse(
+      error,
+      getHeader(headers, "x-trace-id") ?? undefined,
+    );
   }
 }
