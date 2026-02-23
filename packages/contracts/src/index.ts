@@ -304,6 +304,32 @@ export interface GenerateInvoiceForCycleInput {
   traceId: string;
 }
 
+// GL-009 - Async invoice generation API boundary contracts
+
+export type InvoiceGenerationJobStatus =
+  | "queued"
+  | "processing"
+  | "completed"
+  | "failed";
+
+export type EnqueueInvoiceGenerationPayload = GenerateInvoiceForCycleInput;
+
+export interface EnqueueInvoiceGenerationResponse {
+  jobId: string;
+  status: InvoiceGenerationJobStatus;
+}
+
+export interface GetInvoiceGenerationJobStatusPayload {
+  jobId: string;
+}
+
+export interface GetInvoiceGenerationJobStatusResponse {
+  jobId: string;
+  status: InvoiceGenerationJobStatus;
+  invoiceId?: string;
+  reason?: string;
+}
+
 export interface InvoiceAuditEvent {
   action: "invoice.generate" | "invoice.reissue" | "invoice.adjust";
   tenantId: string;
