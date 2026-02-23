@@ -101,7 +101,7 @@ Deliver structural improvements without blocking feature delivery.
   - Branch: `chore/arch-007-i18n-foundation`
   - PR: `#46`
   - Merge SHA: `64e2d3d3b43943459944b36dc52af2df039a5724`
-  - Notes: Introduced shared i18n baseline (`en-US`) with message catalog and API integration while preserving existing response contracts.
+  - Notes: Introduced i18n foundation with en-US baseline and API integration through shared translator.
 
 - [ ] ARCH-008 - Final hardening for idempotency states, shared dedupe, and style guideline
   - Status: IN_PROGRESS
@@ -130,7 +130,7 @@ Deliver structural improvements without blocking feature delivery.
 
 ## Done Criteria for ARCH-000
 
-- [ ] All child issues completed and merged
+- [x] All child issues completed and merged
 - [ ] ADRs updated with final architectural decisions
 - [ ] Quality gates passed for every child PR
 - [ ] Tracker fully updated with issue/PR links
