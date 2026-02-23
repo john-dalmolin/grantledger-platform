@@ -130,6 +130,13 @@ Deliver structural improvements without blocking feature delivery.
   - Merge SHA: `487c7bf621cc8f657cd0911c0255c7a86007a577`
   - Notes: Replace in-memory invoice async infrastructure with durable queue/store, add retry/backoff + dead-letter strategy, and observability while preserving ARCH-009 public contracts.
 
+- [ ] ARCH-011 - Invoice async operational readiness (observability + replay controls)
+  - Status: IN_PROGRESS
+  - Issue: `#58`
+  - Branch: `chore/arch-011-invoice-ops-readiness`
+  - PR: `_to be added_`
+  - Notes: Add operational observability, replay safeguards, and runbook-level guidance for async invoice flow without changing ARCH-009/010 API contracts.
+
 ## ADR References
 
 - [x] ADR-005 - Domain vs Application boundary
