@@ -20,7 +20,7 @@ Canonical references:
 - ARCH-006 completed (`#43`, merge `0706202`)
 - ARCH-007 completed (`#46`, merge `64e2d3d`)
 - ARCH-008 completed (`#49`, merge `bef4fbc`)
-- ARCH-009 in progress (`#52`, branch `chore/arch-009-invoice-idempotent-rollout`)
+- ARCH-009 completed (`#53`, merge `5913159`)
 
 ## Target Architecture Principles
 
@@ -32,16 +32,15 @@ Canonical references:
 
 ## Current Prioritized Sequence
 
-1. ARCH-009: invoice idempotent use-case rollout (application + API + worker) (in progress)
+1. ARCH-009: invoice idempotent use-case rollout (application + API + worker) (completed)
 2. ARCH-010: billing orchestration hardening follow-up (placeholder)
 
-## Next execution focus: ARCH-009
+## Next execution focus: ARCH-010
 
-- Reuse the stateful idempotency model (`processing/completed/failed`) in invoice async orchestration.
-- Introduce async invoice enqueue boundary with `Idempotency-Key` and `202 Accepted + jobId`.
-- Add worker-driven job lifecycle (`queued` -> `processing` -> `completed`/`failed`) and status endpoint.
-- Apply cycle-key + input-hash fingerprinting for invoice enqueue idempotency and deterministic replay.
-- Register ARCH-010 as the next placeholder stream after ARCH-009 closeout.
+- Replace in-memory invoice queue/idempotency stores with durable persistence.
+- Introduce retry/backoff and dead-letter handling for failed invoice jobs.
+- Add operational observability for queue latency, retry rate, and terminal failures.
+- Preserve API/application contracts delivered in ARCH-009 while evolving infrastructure.
 
 ## Delivery Strategy
 

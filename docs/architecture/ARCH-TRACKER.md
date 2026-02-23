@@ -112,12 +112,14 @@ Deliver structural improvements without blocking feature delivery.
   - Merge SHA: `bef4fbc2eca25f136871109d09168293923f46ae`
   - Notes: Introduce stateful idempotency (`processing/completed/failed`), extract shared idempotency/error helpers, and formalize classes vs functions guideline.
 
-- [ ] ARCH-009 - Invoice idempotent use-case rollout (application + API + worker)
-  - Status: IN_PROGRESS
+- [x] ARCH-009 - Invoice idempotent use-case rollout (application + API + worker)
+  - Status: DONE
   - Issue: `#52`
   - Branch: `chore/arch-009-invoice-idempotent-rollout`
-  - PR: `_to be added_`
-  - Notes: Introduce async enqueue + worker processing for invoice generation with idempotency boundary on API (`Idempotency-Key`) and job status lifecycle.
+  - PR: `#53`
+  - Merge SHA: `591315941c9a0944cb353279ce651888462e2c6b`
+  - Notes: Delivered async invoice enqueue/status API, application idempotent enqueue/process/status use-cases, worker processing loop, and full coverage across application/API/worker.
+  - Residual risks: In-memory queue/idempotency storage is non-durable and must be replaced by persistent infrastructure in ARCH-010.
 
 ## ADR References
 
@@ -129,7 +131,7 @@ Deliver structural improvements without blocking feature delivery.
 - [x] ADR-010 - i18n foundation with `en_US` baseline (accepted)
 - [x] ADR-011 - Idempotency state machine and concurrency strategy (accepted)
 - [x] ADR-012 - Classes vs functions guideline (accepted)
-- [ ] ADR-013 - Async idempotent invoice rollout (proposed)
+- [x] ADR-013 - Async idempotent invoice rollout (accepted)
 
 ## Quality Gates (mandatory per PR)
 

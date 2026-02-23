@@ -1,6 +1,6 @@
 # ADR-013: Async Idempotent Invoice Rollout
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-02-23
 - Deciders: Platform Team
 
@@ -42,4 +42,3 @@ Adopt an async invoice generation model with explicit job lifecycle and API idem
 ## Follow-up
 
 - ARCH-010 should harden infrastructure concerns (durable queue/store, retries/backoff, and operational observability).
-- Mark this ADR as `Accepted` when ARCH-009 is merged.
