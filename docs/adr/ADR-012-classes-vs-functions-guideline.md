@@ -1,6 +1,6 @@
 # ADR-012: Classes vs Functions Guideline
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-02-21
 - Deciders: Platform Team
 
@@ -40,5 +40,4 @@ This guideline must be documented in `CONTRIBUTING.md` and referenced in archite
 
 ## Follow-up
 
-- Mark this ADR as `Accepted` when ARCH-008 is merged.
 - Keep guideline synchronized with `CONTRIBUTING.md` and PR template.
