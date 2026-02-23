@@ -1,6 +1,6 @@
 # ADR-014: Durable Invoice Async Infrastructure (Queue, Retry, Observability)
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-02-23
 - Deciders: Platform Team
 
@@ -40,4 +40,3 @@ Adopt durable async infrastructure for invoice generation:
 
 ## Follow-up
 
-- Mark this ADR as `Accepted` when ARCH-010 is merged.

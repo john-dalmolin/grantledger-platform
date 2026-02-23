@@ -122,11 +122,12 @@ Deliver structural improvements without blocking feature delivery.
   - Residual risks: In-memory queue/idempotency storage is non-durable and must be replaced by persistent infrastructure in ARCH-010.
 
 
-- [ ] ARCH-010 - Invoice async infrastructure hardening (durable queue, retries, observability)
-  - Status: IN_PROGRESS
+- [x] ARCH-010 - Invoice async infrastructure hardening (durable queue, retries, observability)
+  - Status: DONE
   - Issue: `#55`
   - Branch: `chore/arch-010-invoice-infra-hardening`
-  - PR: _to be added_
+  - PR: `#56`
+  - Merge SHA: `__MERGE_SHA_COMPLETO__`
   - Notes: Replace in-memory invoice async infrastructure with durable queue/store, add retry/backoff + dead-letter strategy, and observability while preserving ARCH-009 public contracts.
 
 ## ADR References
@@ -140,7 +141,7 @@ Deliver structural improvements without blocking feature delivery.
 - [x] ADR-011 - Idempotency state machine and concurrency strategy (accepted)
 - [x] ADR-012 - Classes vs functions guideline (accepted)
 - [x] ADR-013 - Async idempotent invoice rollout (accepted)
-- [ ] ADR-014 - Durable invoice async infrastructure (proposed)
+- [x] ADR-014 - Durable invoice async infrastructure (accepted)
 
 ## Quality Gates (mandatory per PR)
 
