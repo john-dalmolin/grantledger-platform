@@ -21,6 +21,7 @@ Canonical references:
 - ARCH-007 completed (`#46`, merge `64e2d3d`)
 - ARCH-008 completed (`#49`, merge `bef4fbc`)
 - ARCH-009 completed (`#53`, merge `5913159`)
+- ARCH-010 in progress (`#55`, branch `chore/arch-010-invoice-infra-hardening`)
 
 ## Target Architecture Principles
 
@@ -32,14 +33,9 @@ Canonical references:
 
 ## Current Prioritized Sequence
 
-1. ARCH-009: invoice idempotent use-case rollout (application + API + worker) (completed)
-2. ARCH-010: billing orchestration hardening follow-up (placeholder)
+1. ARCH-010: invoice async infrastructure hardening (durable queue + retries + observability) (in progress)
+2. ARCH-011: architecture follow-up placeholder (planned)
 
-## Next execution focus: ARCH-010
-
-- Replace in-memory invoice queue/idempotency stores with durable persistence.
-- Introduce retry/backoff and dead-letter handling for failed invoice jobs.
-- Add operational observability for queue latency, retry rate, and terminal failures.
 - Preserve API/application contracts delivered in ARCH-009 while evolving infrastructure.
 
 ## Delivery Strategy

@@ -121,6 +121,14 @@ Deliver structural improvements without blocking feature delivery.
   - Notes: Delivered async invoice enqueue/status API, application idempotent enqueue/process/status use-cases, worker processing loop, and full coverage across application/API/worker.
   - Residual risks: In-memory queue/idempotency storage is non-durable and must be replaced by persistent infrastructure in ARCH-010.
 
+
+- [ ] ARCH-010 - Invoice async infrastructure hardening (durable queue, retries, observability)
+  - Status: IN_PROGRESS
+  - Issue: `#55`
+  - Branch: `chore/arch-010-invoice-infra-hardening`
+  - PR: _to be added_
+  - Notes: Replace in-memory invoice async infrastructure with durable queue/store, add retry/backoff + dead-letter strategy, and observability while preserving ARCH-009 public contracts.
+
 ## ADR References
 
 - [x] ADR-005 - Domain vs Application boundary
@@ -132,6 +140,7 @@ Deliver structural improvements without blocking feature delivery.
 - [x] ADR-011 - Idempotency state machine and concurrency strategy (accepted)
 - [x] ADR-012 - Classes vs functions guideline (accepted)
 - [x] ADR-013 - Async idempotent invoice rollout (accepted)
+- [ ] ADR-014 - Durable invoice async infrastructure (proposed)
 
 ## Quality Gates (mandatory per PR)
 

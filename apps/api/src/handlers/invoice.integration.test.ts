@@ -74,8 +74,9 @@ function makeDeps(
     invoiceJobStore: createInMemoryInvoiceJobStore(),
     enqueueIdempotencyStore:
       createInMemoryAsyncIdempotencyStore<EnqueueInvoiceGenerationResponse>(),
-    processIdempotencyStore:
-      createInMemoryAsyncIdempotencyStore<{ invoiceId: string }>(),
+    processIdempotencyStore: createInMemoryAsyncIdempotencyStore<{
+      invoiceId: string;
+    }>(),
     generateId: () => {
       nextId += 1;
       return `id_${nextId}`;
@@ -86,9 +87,7 @@ function makeDeps(
   return { invoiceUseCases };
 }
 
-function authorizedHeaders(
-  extra: Record<string, string> = {},
-): Headers {
+function authorizedHeaders(extra: Record<string, string> = {}): Headers {
   return asHeaders({
     "x-user-id": "u_1",
     "x-tenant-id": "t_1",
@@ -196,7 +195,7 @@ describe("invoice handler integration", () => {
       deps.invoiceUseCases,
     );
 
-    expect(processResult.status).toBe("failed");
+    expect(processResult.status).toBe("retry_scheduled");
 
     const failed = await handleGetInvoiceGenerationJobStatus(
       authorizedHeaders(),
@@ -205,6 +204,9 @@ describe("invoice handler integration", () => {
     );
 
     expect(failed.status).toBe(200);
-    expect(failed.body).toMatchObject({ jobId, status: "failed" });
+    expect(failed.body).toMatchObject({ jobId, status: "queued" });
+    expect((failed.body as { reason?: string }).reason).toContain(
+      "repository unavailable",
+    );
   });
 });
