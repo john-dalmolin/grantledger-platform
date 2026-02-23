@@ -26,6 +26,13 @@ export async function runInvoiceWorkerOnce(
     return { status: "idle" };
   }
 
+  if (result.status === "retry_scheduled") {
+    return {
+      status: "failed",
+      jobId: result.jobId,
+    };
+  }
+
   if (result.status === "failed") {
     return {
       status: "failed",

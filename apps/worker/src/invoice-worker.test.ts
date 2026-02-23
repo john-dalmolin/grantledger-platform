@@ -68,8 +68,22 @@ function makePayload(
   };
 }
 
+function createSteppingNow(
+  startIso = "2026-02-01T00:00:00.000Z",
+  stepMs = 300_000,
+): () => string {
+  let current = Date.parse(startIso);
+
+  return () => {
+    const value = new Date(current).toISOString();
+    current += stepMs;
+    return value;
+  };
+}
+
 function makeDeps(
   repository: InvoiceRepository,
+  now: () => string = () => new Date().toISOString(),
 ): { invoiceUseCases: InvoiceUseCaseDeps } {
   let nextId = 0;
 
@@ -77,11 +91,13 @@ function makeDeps(
     invoiceUseCases: {
       invoiceRepository: repository,
       invoiceAuditLogger: new NoopInvoiceAuditLogger(),
-      invoiceJobStore: createInMemoryInvoiceJobStore(),
+      invoiceJobStore: createInMemoryInvoiceJobStore(now),
       enqueueIdempotencyStore:
         createInMemoryAsyncIdempotencyStore<EnqueueInvoiceGenerationResponse>(),
-      processIdempotencyStore:
-        createInMemoryAsyncIdempotencyStore<{ invoiceId: string }>(),
+      processIdempotencyStore: createInMemoryAsyncIdempotencyStore<{
+        invoiceId: string;
+      }>(),
+      now,
       generateId: () => {
         nextId += 1;
         return `id_${nextId}`;
@@ -129,7 +145,7 @@ describe("invoice worker", () => {
     expect(repository.saveCount).toBe(1);
   });
 
-  it("marks job as failed when processing raises an error", async () => {
+  it("schedules retry when processing raises an error", async () => {
     const deps = makeDeps(new FailingInvoiceRepository());
     const jobId = await enqueueJob(deps, "worker-idem-2");
 
@@ -141,6 +157,32 @@ describe("invoice worker", () => {
     );
 
     expect(result).toEqual({ status: "failed", jobId });
+    expect(status.status).toBe("queued");
+    expect(status.reason).toContain("unable to save invoice");
+  });
+
+  it("marks job as failed after max attempts are exhausted", async () => {
+    const steppingNow = createSteppingNow();
+    const deps = makeDeps(new FailingInvoiceRepository(), steppingNow);
+
+    const jobId = await enqueueJob(deps, "worker-idem-dead-letter");
+
+    const first = await runInvoiceWorkerOnce(deps);
+    const second = await runInvoiceWorkerOnce(deps);
+    const third = await runInvoiceWorkerOnce(deps);
+    const fourth = await runInvoiceWorkerOnce(deps);
+
+    expect(first).toEqual({ status: "failed", jobId });
+    expect(second).toEqual({ status: "failed", jobId });
+    expect(third).toEqual({ status: "failed", jobId });
+    expect(fourth).toEqual({ status: "idle" });
+
+    const status = await getInvoiceGenerationJobStatus(
+      deps.invoiceUseCases,
+      jobId,
+      "t_1",
+    );
+
     expect(status.status).toBe("failed");
     expect(status.reason).toContain("unable to save invoice");
   });
@@ -159,4 +201,30 @@ describe("invoice worker", () => {
     expect(secondRun.status).toBe("idle");
     expect(repository.saveCount).toBe(1);
   });
+});
+
+it("continues processing when observer throws", async () => {
+  const repository = new InMemoryCountingInvoiceRepository();
+  const deps = makeDeps(repository);
+  const jobId = await enqueueJob(deps, "worker-idem-observer");
+
+  deps.invoiceUseCases.jobObserver = {
+    onJobClaimed: () => {
+      throw new Error("observer claim boom");
+    },
+    onJobCompleted: () => {
+      throw new Error("observer completed boom");
+    },
+  };
+
+  const result = await runInvoiceWorkerOnce(deps);
+  const status = await getInvoiceGenerationJobStatus(
+    deps.invoiceUseCases,
+    jobId,
+    "t_1",
+  );
+
+  expect(result).toEqual({ status: "processed", jobId });
+  expect(status.status).toBe("completed");
+  expect(repository.saveCount).toBe(1);
 });

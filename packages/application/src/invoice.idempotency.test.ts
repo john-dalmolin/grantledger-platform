@@ -60,8 +60,9 @@ function makeDeps(
     new NoopInvoiceAuditLogger() satisfies InvoiceAuditLogger;
   const enqueueIdempotencyStore =
     createInMemoryAsyncIdempotencyStore<EnqueueInvoiceGenerationResponse>();
-  const processIdempotencyStore =
-    createInMemoryAsyncIdempotencyStore<{ invoiceId: string }>();
+  const processIdempotencyStore = createInMemoryAsyncIdempotencyStore<{
+    invoiceId: string;
+  }>();
 
   return {
     invoiceRepository,
@@ -77,9 +78,11 @@ function makeDeps(
   };
 }
 
-function createBlockingJobStore(
-  base: InvoiceJobStore,
-): { store: InvoiceJobStore; release: () => void; started: Promise<void> } {
+function createBlockingJobStore(base: InvoiceJobStore): {
+  store: InvoiceJobStore;
+  release: () => void;
+  started: Promise<void>;
+} {
   let firstCall = true;
   let release!: () => void;
   let startedResolve!: () => void;
@@ -105,7 +108,14 @@ function createBlockingJobStore(
     get: (jobId: string) => base.get(jobId),
     markCompleted: (jobId: string, invoiceId: string) =>
       base.markCompleted(jobId, invoiceId),
-    markFailed: (jobId: string, reason: string) => base.markFailed(jobId, reason),
+    markRetry: (
+      jobId: string,
+      reason: string,
+      nextAttemptAt: string,
+      attemptCount: number,
+    ) => base.markRetry(jobId, reason, nextAttemptAt, attemptCount),
+    markDeadLetter: (jobId: string, reason: string) =>
+      base.markDeadLetter(jobId, reason),
   };
 
   return { store, release, started };
@@ -126,7 +136,14 @@ function createFailingOnceEnqueueStore(base: InvoiceJobStore): InvoiceJobStore {
     get: (jobId: string) => base.get(jobId),
     markCompleted: (jobId: string, invoiceId: string) =>
       base.markCompleted(jobId, invoiceId),
-    markFailed: (jobId: string, reason: string) => base.markFailed(jobId, reason),
+    markRetry: (
+      jobId: string,
+      reason: string,
+      nextAttemptAt: string,
+      attemptCount: number,
+    ) => base.markRetry(jobId, reason, nextAttemptAt, attemptCount),
+    markDeadLetter: (jobId: string, reason: string) =>
+      base.markDeadLetter(jobId, reason),
   };
 }
 
@@ -209,6 +226,24 @@ describe("invoice enqueue idempotency", () => {
 
     blocking.release();
     await firstPromise;
+  });
+
+  it("replays when only traceId changes for same idempotency key", async () => {
+    const deps = makeDeps();
+
+    const first = await enqueueInvoiceGeneration(deps, {
+      idempotencyKey: "invoice-idem-trace",
+      payload: makePayload({ traceId: "trace-a" }),
+    });
+
+    const second = await enqueueInvoiceGeneration(deps, {
+      idempotencyKey: "invoice-idem-trace",
+      payload: makePayload({ traceId: "trace-b" }),
+    });
+
+    expect(first.replayed).toBe(false);
+    expect(second.replayed).toBe(true);
+    expect(second.jobId).toBe(first.jobId);
   });
 
   it("allows retry when first enqueue execution fails", async () => {
