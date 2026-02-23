@@ -20,6 +20,7 @@ Deliver structural improvements without blocking feature delivery.
 - Introduce generic idempotency executor
 - Introduce i18n foundation (`en_US` baseline)
 - Finalize hardening for idempotency states, dedupe extraction, and style guidance
+- Roll out async idempotent invoice generation across application, API, and worker
 
 ## Out of Scope
 
@@ -111,6 +112,13 @@ Deliver structural improvements without blocking feature delivery.
   - Merge SHA: `bef4fbc2eca25f136871109d09168293923f46ae`
   - Notes: Introduce stateful idempotency (`processing/completed/failed`), extract shared idempotency/error helpers, and formalize classes vs functions guideline.
 
+- [ ] ARCH-009 - Invoice idempotent use-case rollout (application + API + worker)
+  - Status: IN_PROGRESS
+  - Issue: `#52`
+  - Branch: `chore/arch-009-invoice-idempotent-rollout`
+  - PR: `_to be added_`
+  - Notes: Introduce async enqueue + worker processing for invoice generation with idempotency boundary on API (`Idempotency-Key`) and job status lifecycle.
+
 ## ADR References
 
 - [x] ADR-005 - Domain vs Application boundary
@@ -121,6 +129,7 @@ Deliver structural improvements without blocking feature delivery.
 - [x] ADR-010 - i18n foundation with `en_US` baseline (accepted)
 - [x] ADR-011 - Idempotency state machine and concurrency strategy (accepted)
 - [x] ADR-012 - Classes vs functions guideline (accepted)
+- [ ] ADR-013 - Async idempotent invoice rollout (proposed)
 
 ## Quality Gates (mandatory per PR)
 
@@ -131,7 +140,7 @@ Deliver structural improvements without blocking feature delivery.
 
 ## Done Criteria for ARCH-000
 
-- [x] All child issues completed and merged
+- [ ] All child issues completed and merged
 - [ ] ADRs updated with final architectural decisions
 - [ ] Quality gates passed for every child PR
 - [ ] Tracker fully updated with issue/PR links
