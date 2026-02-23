@@ -20,6 +20,7 @@ Canonical references:
 - ARCH-006 completed (`#43`, merge `0706202`)
 - ARCH-007 completed (`#46`, merge `64e2d3d`)
 - ARCH-008 completed (`#49`, merge `bef4fbc`)
+- ARCH-009 in progress (`#52`, branch `chore/arch-009-invoice-idempotent-rollout`)
 
 ## Target Architecture Principles
 
@@ -31,15 +32,16 @@ Canonical references:
 
 ## Current Prioritized Sequence
 
-1. ARCH-008: final hardening (idempotency states + shared dedupe + style guideline) (completed)
-2. ARCH-009: invoice idempotent use-case rollout (planned)
+1. ARCH-009: invoice idempotent use-case rollout (application + API + worker) (in progress)
+2. ARCH-010: billing orchestration hardening follow-up (placeholder)
 
 ## Next execution focus: ARCH-009
 
-- Introduce idempotency state machine with `processing/completed/failed`.
-- Extract reusable shared helpers for idempotency fingerprint and error envelope.
-- Publish team guideline for classes vs pure functions (ADR + CONTRIBUTING).
-- Prepare invoice idempotent orchestration base and defer full rollout to ARCH-009.
+- Reuse the stateful idempotency model (`processing/completed/failed`) in invoice async orchestration.
+- Introduce async invoice enqueue boundary with `Idempotency-Key` and `202 Accepted + jobId`.
+- Add worker-driven job lifecycle (`queued` -> `processing` -> `completed`/`failed`) and status endpoint.
+- Apply cycle-key + input-hash fingerprinting for invoice enqueue idempotency and deterministic replay.
+- Register ARCH-010 as the next placeholder stream after ARCH-009 closeout.
 
 ## Delivery Strategy
 
