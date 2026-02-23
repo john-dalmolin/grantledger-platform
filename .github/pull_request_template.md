@@ -20,6 +20,8 @@ Describe what changed and why.
 - [ ] `docs/architecture/IMPROVEMENT-ROADMAP.md` updated
 - [ ] Architectural scope reflected correctly in code and docs
 - [ ] Next ARCH step identified
+- [ ] Classes vs functions decision follows CONTRIBUTING/ADR-012 guideline
+- [ ] Structural duplication reduced/avoided (errors/time/idempotency helpers)
 
 ## Risks / Trade-offs
 

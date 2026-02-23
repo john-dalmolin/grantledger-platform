@@ -1,14 +1,11 @@
-export {
-  handleCancelSubscriptionAtPeriodEndCommand,
-  handleCancelSubscriptionNowCommand,
-  handleCreateSubscriptionCommand,
-  handleDowngradeSubscriptionCommand,
-  handleUpgradeSubscriptionCommand,
-} from "./handlers/subscription.js";
+export type IdempotencyStatus = "processing" | "completed" | "failed";
 
-export {
-  handleCreateSubscription,
-  handleProtectedRequest,
-} from "./handlers/auth.js";
-
-export { handleStartCheckout } from "./handlers/checkout.js";
+export interface IdempotencyRecord<TResponse = unknown> {
+  key: string;
+  payloadHash: string;
+  status: IdempotencyStatus;
+  createdAt: string;
+  updateAt: string;
+  response?: TResponse;
+  errorMessage?: string;
+}

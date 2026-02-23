@@ -19,7 +19,7 @@ Canonical references:
 - ARCH-005 completed (`#40`, merge `b72ef69`)
 - ARCH-006 completed (`#43`, merge `0706202`)
 - ARCH-007 completed (`#46`, merge `64e2d3d`)
-- ARCH-008 in progress (`issue pending`, branch `chore/arch-008-final-hardening`)
+- ARCH-008 in progress (`#50`, branch `chore/arch-008-final-hardening`)
 
 ## Target Architecture Principles
 

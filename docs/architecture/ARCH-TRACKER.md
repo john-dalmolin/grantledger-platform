@@ -105,7 +105,7 @@ Deliver structural improvements without blocking feature delivery.
 
 - [ ] ARCH-008 - Final hardening for idempotency states, shared dedupe, and style guideline
   - Status: IN_PROGRESS
-  - Issue: `_to be added_` (GitHub API unavailable during kickoff)
+  - Issue: `#50`
   - Branch: `chore/arch-008-final-hardening`
   - PR: `_to be added_`
   - Notes: Introduce stateful idempotency (`processing/completed/failed`), extract shared idempotency/error helpers, and formalize classes vs functions guideline.

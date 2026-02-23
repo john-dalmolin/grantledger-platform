@@ -1,6 +1,6 @@
 import { AppError } from "@grantledger/application";
 import { SubscriptionDomainError } from "@grantledger/domain";
-import { t } from "@grantledger/shared";
+import { buildStandardErrorBody, t } from "@grantledger/shared";
 
 import type { ApiResponse } from "./types.js";
 
@@ -11,13 +11,6 @@ export interface ApiErrorResponseBody {
   traceId?: string;
 }
 
-function attachTraceId(
-  body: Omit<ApiErrorResponseBody, "traceId">,
-  traceId?: string,
-): ApiErrorResponseBody {
-  return traceId ? { ...body, traceId } : body;
-}
-
 export function toApiErrorResponse(
   error: unknown,
   traceId?: string,
@@ -26,38 +19,32 @@ export function toApiErrorResponse(
   if (error instanceof AppError) {
     return {
       status: error.httpStatus,
-      body: attachTraceId(
-        {
-          message: error.message,
-          code: error.code,
-          ...(error.details !== undefined ? { details: error.details } : {}),
-        },
-        traceId,
-      ),
+      body: buildStandardErrorBody({
+        message: error.message,
+        code: error.code,
+        ...(error.details !== undefined ? { details: error.details } : {}),
+        ...(traceId !== undefined ? { traceId } : {}),
+      }),
     };
   }
 
   if (error instanceof SubscriptionDomainError) {
     return {
       status: 409,
-      body: attachTraceId(
-        {
-          message: error.message,
-          code: "DOMAIN_CONFLICT",
-        },
-        traceId,
-      ),
+      body: buildStandardErrorBody({
+        message: error.message,
+        code: "DOMAIN_CONFLICT",
+        ...(traceId !== undefined ? { traceId } : {}),
+      }),
     };
   }
 
   return {
     status: 500,
-    body: attachTraceId(
-      {
-        message: t("error.unexpected", locale ? { locale } : undefined),
-        code: "INTERNAL_ERROR",
-      },
-      traceId,
-    ),
+    body: buildStandardErrorBody({
+      message: t("error.unexpected", locale ? { locale } : undefined),
+      code: "INTERNAL_ERROR",
+      ...(traceId !== undefined ? { traceId } : {}),
+    }),
   };
 }
