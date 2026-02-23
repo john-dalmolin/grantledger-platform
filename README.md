@@ -1,71 +1,91 @@
 # GrantLedger Platform
 
-API-first, multi-tenant SaaS billing and entitlements platform built as a production-oriented TypeScript monorepo.
+If you've worked on SaaS products long enough, you've probably seen this happen: billing starts simple, then slowly becomes one of the hardest parts of the platform to change safely.
 
-> Status: Active development (foundation completed, billing core in progress)
+What used to be “just a few rules” turns into retries, partial failures, webhook replays, timezone edge cases, and business logic spread across handlers, jobs, and integrations.
 
-## Purpose
+> GrantLedger was built for that exact reality.
 
-GrantLedger was created to solve a practical backend problem: evolving billing and access-control workflows without creating long-term architectural debt.
+## Why This Project Exists
 
-The project emphasizes:
+The goal is not to showcase architecture for its own sake.
+The goal is to solve a common and recurring company problem: make billing workflows reliable, understandable, and evolvable as the product grows.
 
-- explicit domain boundaries
-- predictable issue-driven delivery
-- strict typing and shared contracts
-- low coupling to external providers
-- auditable technical decisions
+In practice, that means:
+- keeping business rules explicit and testable;
+- protecting write flows with idempotency and clear conflict behavior;
+- validating contracts at the boundaries;
+- handling async processing predictably (queue -> processing -> completion/failure);
+- documenting architecture decisions so the system can evolve without losing coherence.
 
-## Current Scope (Feb 2026)
+## Project Objective
+GrantLedger is a practical foundation for multi-tenant SaaS billing where teams can ship features without accumulating hidden operational risk.
 
-Delivered milestones:
+It aims to give product and engineering teams confidence that billing behavior is:
 
-- GL-001: monorepo bootstrap and engineering baseline
-- GL-002: authentication, memberships, and tenant request context
-- GL-003: idempotency baseline for write operations
-- GL-004: payment provider abstraction baseline
-- GL-005: versioned plan catalog with immutable published versions
-- GL-006: subscription state machine with idempotent commands
+- consistent,
+- auditable,
+- resilient under retries/concurrency,
+- maintainable over time.
 
-## Implemented Behavior Baselines
+## At a Glance
 
-### Auth and tenant context
+> Current status on `main`: architecture hardening stream delivered through `ARCH-010`; next planned focus is `ARCH-011`.
 
-- missing authenticated user -> `401`
-- missing tenant header/context -> `400`
-- no active membership for tenant -> `403`
-- valid tenant membership -> `200`
+- domain rules stay pure and deterministic
+- use cases orchestrate idempotency, retries, and audit flow
+- API/worker layers adapt transport concerns without leaking business logic
+- contracts are schema-first at boundaries
+- architectural decisions are tracked and versioned via ADRs
 
-### Idempotent writes
+## What Is Implemented Today
 
-- missing idempotency key -> `400`
-- first write with new key -> `201`
-- same key + same payload -> `200` (replay)
-- same key + different payload -> `409`
+### Core capabilities
 
-### Subscription lifecycle
+- Tenant-aware request context resolution with explicit auth/access failure semantics.
+- Checkout orchestration through an application-level payment provider contract.
+- Subscription state-machine commands with idempotent mutation orchestration.
+- Webhook normalization + deduplication path with canonical event publishing contract.
+- Async invoice generation flow across API + application + worker:
+  - enqueue with `Idempotency-Key`
+  - status polling by `jobId`
+  - worker processing with retry scheduling and terminal dead-letter status
 
-- explicit create/upgrade/downgrade/cancel commands
-- invalid transitions fail with domain conflict
-- command-level idempotency for mutation safety
-- structured audit/domain events for critical transitions
+### Behavioral guarantees
+
+- Standard API error envelope: `{ message, code, details?, traceId? }`
+- Idempotency state model in application layer: `processing | completed | failed`
+- Conflict safety:
+  - same key + different payload -> `409`
+  - same key while processing -> `409`
+- Async invoice contract:
+  - enqueue -> `202 Accepted` with `jobId`
+  - status -> `queued | processing | completed | failed`
+  - transient processing failures can return job to `queued` with retry reason
 
 ## Architecture
 
-Core principles:
+### Layer responsibilities
 
-- Domain-first: business rules remain framework-agnostic
-- Ports/adapters: integrations are injected behind interfaces
-- Explicit contracts: shared types are centralized in `packages/contracts`
-- Incremental evolution: each issue adds one coherent capability
+- `packages/domain`
+  - entities, invariants, state transitions, deterministic calculations
+  - no transport/framework/provider concerns
+- `packages/application`
+  - use-case orchestration, ports/interfaces, idempotency, retry/dead-letter flow
+  - no HTTP-specific mapping
+- `apps/api`, `apps/worker`
+  - boundary validation, header/context resolution, error-to-transport mapping, workflow triggering
+- `packages/contracts`
+  - canonical types + Zod schemas for boundary contracts
+- `packages/shared`
+  - reusable cross-cutting helpers (`time`, `i18n`, idempotency fingerprinting, standard error body)
 
-Dependency direction:
+### Dependency direction
 
-- `packages/domain` -> no framework dependency
-- `packages/application` -> depends on `packages/domain` and `packages/contracts`
-- `apps/*` -> consumes application use cases and contracts
+`apps/* -> application -> domain`  
+`contracts` and `shared` are consumed as cross-cutting foundational packages.
 
-Repository layout:
+### Repository layout
 
 ```txt
 apps/
@@ -74,9 +94,9 @@ apps/
   admin/
 
 packages/
-  contracts/
   domain/
   application/
+  contracts/
   shared/
 
 docs/
@@ -84,107 +104,112 @@ docs/
   adr/
 ```
 
-## Engineering Maturity
+## Async Invoice Flow (ARCH-009/010 Baseline)
 
-Current baseline:
+```mermaid
+flowchart LR
+  C["Client"] -->|POST enqueue + Idempotency-Key| API["API handler"]
+  API --> APP1["application.enqueueInvoiceGeneration"]
+  APP1 --> JOB["JobStore (queued)"]
+  C -->|GET status jobId| API
+  W["Worker runInvoiceWorkerOnce"] --> APP2["application.processNextInvoiceGenerationJob"]
+  APP2 --> JOB
+  APP2 --> INV["InvoiceRepository"]
+  APP2 --> AUD["AuditLogger / Observer hooks"]
+  JOB -->|completed/failed| API
+```
 
-- TypeScript strict mode with project references
-- ESLint configured for workspace-level quality
-- ADR-driven architecture decisions
-- issue-to-branch-to-PR workflow discipline
+## Monorepo Packages
 
-Planned next maturity step:
-
-- GL-012: formal quality gates with unit/integration/contract/E2E tests and CI/CD enforcement
+- `@grantledger/domain`: business rules and invariants.
+- `@grantledger/application`: use cases (`subscription`, `invoice`, `idempotency`, `payment-webhook`, `auth-context`, `checkout`).
+- `@grantledger/contracts`: shared domain/app/API contracts and Zod schemas.
+- `@grantledger/shared`: time policy (Luxon), i18n baseline (`en-US`), stable payload hashing, and standard error body helpers.
+- `@grantledger/api` / `@grantledger/worker`: transport-facing orchestration adapters built as testable functions.
 
 ## Tech Stack
 
-- Node.js 22.x
-- TypeScript (strict mode + exact optional property types)
+- Node.js `22.x`
+- TypeScript (`strict`, project references, `exactOptionalPropertyTypes`)
 - npm workspaces
-- ESLint
-- project references (`tsc -b`)
+- Zod (schema-first boundary validation)
+- Luxon (timezone-safe datetime handling)
+- Vitest + ESLint
 
-## Getting Started
+## Local Setup
 
-Prerequisites:
+### Prerequisites
 
 - Node.js `>=22 <23`
 - npm `>=10 <11`
 
-Install dependencies:
+### Install
 
 ```bash
 npm ci
 ```
 
-Run quality gates:
+### Full quality gate
 
 ```bash
-npm run typecheck
-npm run build
-npm run lint
+npm run lint && npm run typecheck && npm run build && npm run test
 ```
 
-## Development Workflow
+## Testing Strategy
 
-Branch naming:
+Current test scope is focused on business-critical behavior:
 
-- `feat/<issue>-<slug>`
-- `fix/<issue>-<slug>`
-- `chore/<issue>-<slug>`
+- `packages/application/src/**/*.test.ts`
+  - idempotency core
+  - subscription idempotency
+  - webhook dedup behavior
+  - invoice enqueue/process idempotency and retry lifecycle
+- `apps/api/src/**/*.test.ts`
+  - integration-style handler tests (auth, checkout, subscription, invoice, error mapping)
+- `apps/worker/src/**/*.test.ts`
+  - worker loop behavior (`idle`, `processed`, retry scheduling, dead-letter, observer-failure resilience)
 
-Delivery rules:
+## Governance and Architecture Discipline
 
-- 1 issue = 1 branch = 1 PR
-- no direct commits to `main`
-- keep PR scope aligned with one issue
-- use Squash and Merge
-- document risks and trade-offs in PR body
-
-## ADRs (Architecture Decision Records)
-
-Location: `docs/adr`
-
-- `ADR-001-tenancy-model.md`
-- `ADR-002-entitlements-model.md`
-- `ADR-003-idempotency.md`
-- `ADR-004-payment-provider-abstraction.md`
-- `ADR-005-domain-vs-application-boundary.md`
-
-## Architecture Governance
-
-Canonical governance docs:
+Architecture changes follow an issue-driven stream (`ARCH-*`) with mandatory documentation updates.
 
 - Tracker: `docs/architecture/ARCH-TRACKER.md`
 - Guardrails: `docs/architecture/ARCH-GUARDRAILS.md`
-- Improvement roadmap: `docs/architecture/IMPROVEMENT-ROADMAP.md`
+- Roadmap: `docs/architecture/IMPROVEMENT-ROADMAP.md`
+- Contribution guideline: `CONTRIBUTING.md`
+- PR checklist: `.github/pull_request_template.md`
 
-Governance update rule for every ARCH issue:
+### ADR set (accepted)
 
-- update docs at issue start (`IN_PROGRESS`)
-- update docs again before merge (`DONE`)
+- `ADR-005` Domain vs Application boundary
+- `ADR-006` Schema-first validation with Zod
+- `ADR-007` Timezone-safe datetime policy (Luxon)
+- `ADR-008` Standard error model and centralized API mapping
+- `ADR-009` Generic idempotency executor
+- `ADR-010` i18n foundation (`en_US` baseline)
+- `ADR-011` Idempotency state machine + concurrency behavior
+- `ADR-012` Classes vs functions guideline
+- `ADR-013` Async idempotent invoice rollout
+- `ADR-014` Durable invoice async infrastructure strategy
 
-## Roadmap
+## Current Trade-offs and Next Steps
 
-- GL-007: deterministic invoice engine
-- GL-008: Stripe adapter and payment processing flow
-- GL-009: entitlements engine (capabilities + limits)
-- GL-010: transactional outbox + retries + DLQ
-- GL-011: operational observability (logs, metrics, tracing, SLOs)
-- GL-012: quality and CI/CD gates (unit, integration, contract, E2E)
+- The repository currently exposes reference in-memory adapters in core flows for deterministic tests and low-friction local execution.
+- Retry, backoff, dead-letter semantics and observer-safe notifications are already modeled in application use cases.
+- Next architecture step (`ARCH-011`) should continue the infrastructure evolution while preserving the public contracts introduced in `ARCH-009`.
 
 ## Project Links
 
-- Repository: [github.com/john-dalmolin/grantledger-platform](https://github.com/john-dalmolin/grantledger-platform)
-- Board: [github.com/users/john-dalmolin/projects/6](https://github.com/users/john-dalmolin/projects/6)
+- Repository: [john-dalmolin/grantledger-platform](https://github.com/john-dalmolin/grantledger-platform)
+- Project board: [GitHub Project #6](https://github.com/users/john-dalmolin/projects/6)
 
-## Portfolio Highlights
+## Acknowledgments
 
-This repository demonstrates practical senior backend concerns:
+Special thanks to [Marcos Pont](https://github.com/marcospont) for all the support, advice, and feedback throughout this project.
+His guidance was fundamental to shaping and improving GrantLedger.
 
-- multi-tenant architecture with explicit boundaries
-- idempotency modeled as a first-class concern
-- auditable subscription workflows
-- provider-agnostic payment design
-- disciplined issue-to-PR delivery
+## References
+
+- HTTP Semantics (RFC 9110): [https://www.rfc-editor.org/rfc/rfc9110](https://www.rfc-editor.org/rfc/rfc9110)
+- Zod documentation: [https://zod.dev](https://zod.dev)
+- Luxon documentation: [https://moment.github.io/luxon](https://moment.github.io/luxon)
