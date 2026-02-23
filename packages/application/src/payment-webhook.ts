@@ -56,7 +56,10 @@ function toAsyncStore(
   dedupStore: WebhookDedupStore,
 ): AsyncIdempotencyStore<CanonicalPaymentEvent> {
   return {
-    async get(scope: string, key: string): Promise<IdempotencyRecord<CanonicalPaymentEvent> | null> {
+    async get(
+      scope: string,
+      key: string,
+    ): Promise<IdempotencyRecord<CanonicalPaymentEvent> | null> {
       const [provider] = scope.split(":") as [PaymentProviderName, string?];
       const alreadyProcessed = await dedupStore.has(provider, key);
       if (!alreadyProcessed) return null;
@@ -66,7 +69,8 @@ function toAsyncStore(
         payloadHash: "null",
         status: "completed",
         response: {} as CanonicalPaymentEvent,
-        createdAt: "",
+        createdAt: "1970-01-01T00:00:00Z",
+        updatedAt: "1970-01-01T00:00:00Z",
       };
     },
     async set(scope: string, key: string): Promise<void> {

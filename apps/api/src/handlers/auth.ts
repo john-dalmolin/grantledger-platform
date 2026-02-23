@@ -1,12 +1,11 @@
 import { toApiErrorResponse } from "../http/errors.js";
 import {
+  createInMemoryAsyncIdempotencyStore,
   executeIdempotent,
   resolveRequestContext,
-  type AsyncIdempotencyStore,
 } from "@grantledger/application";
 import type {
   CreateSubscriptionPayload,
-  IdempotencyRecord,
   RequestContext,
 } from "@grantledger/contracts";
 import { createSubscriptionPayloadSchema } from "@grantledger/contracts";
@@ -30,26 +29,9 @@ const membershipStore: Membership[] = [
   { userId: "u_2", tenantId: "t_1", role: "member", status: "inactive" },
 ];
 
-const idempotencyStore = new Map<
-  string,
-  IdempotencyRecord<CreateSubscriptionResponse>
->();
-
-const authIdempotencyStore: AsyncIdempotencyStore<CreateSubscriptionResponse> = {
-  async get(
-    scope: string,
-    key: string,
-  ): Promise<IdempotencyRecord<CreateSubscriptionResponse> | null> {
-    return idempotencyStore.get(`${scope}:${key}`) ?? null;
-  },
-  async set(
-    scope: string,
-    key: string,
-    record: IdempotencyRecord<CreateSubscriptionResponse>,
-  ): Promise<void> {
-    idempotencyStore.set(`${scope}:${key}`, record);
-  },
-};
+const authIdempotencyStore =
+  createInMemoryAsyncIdempotencyStore<CreateSubscriptionResponse>();
+let subscriptionCounter = 0;
 
 function localeFromHeaders(headers: Headers): string | undefined {
   return getHeader(headers, "accept-language") ?? undefined;
@@ -118,13 +100,16 @@ export async function handleCreateSubscription(
         externalReference: parsedPayload.externalReference ?? null,
       },
       store: authIdempotencyStore,
-      execute: async () => ({
-        subscriptionId: `sub_${idempotencyStore.size + 1}`,
-        tenantId: context.tenant.id,
-        planId: parsedPayload.planId,
-        status: "active",
-        createdAt: utcNowIso(),
-      }),
+      execute: async () => {
+        subscriptionCounter += 1;
+        return {
+          subscriptionId: `sub_${subscriptionCounter}`,
+          tenantId: context.tenant.id,
+          planId: parsedPayload.planId,
+          status: "active",
+          createdAt: utcNowIso(),
+        };
+      },
     });
 
     return {

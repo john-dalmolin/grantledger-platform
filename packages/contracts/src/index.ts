@@ -14,14 +14,16 @@ export interface RequestContext {
   tenant: TenantContext;
 }
 
-export type IdempotencyStatus = "completed";
+export type IdempotencyStatus = "processing" | "completed" | "failed";
 
 export interface IdempotencyRecord<TResponse = unknown> {
   key: string;
   payloadHash: string;
   status: IdempotencyStatus;
-  response: TResponse;
   createdAt: string;
+  updatedAt: string;
+  response?: TResponse;
+  errorMessage?: string;
 }
 
 export type PaymentProviderName =
