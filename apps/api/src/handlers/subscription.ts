@@ -2,12 +2,12 @@ import { toApiErrorResponse } from "../http/errors.js";
 import {
   cancelSubscriptionAtPeriodEnd,
   cancelSubscriptionNow,
+  createInMemoryAsyncIdempotencyStore,
   createSubscription,
   downgradeSubscription,
   type SubscriptionAuditLogger,
   type SubscriptionEventPublisher,
   type SubscriptionIdempotencyStore,
-  type SubscriptionIdempotencyStoreRecord,
   type SubscriptionRepository,
   type SubscriptionUseCaseDeps,
   upgradeSubscription,
@@ -53,28 +53,6 @@ class InMemorySubscriptionRepository implements SubscriptionRepository {
   }
 }
 
-class InMemorySubscriptionIdempotencyStore implements SubscriptionIdempotencyStore {
-  private readonly store = new Map<
-    string,
-    SubscriptionIdempotencyStoreRecord
-  >();
-
-  async get(
-    command: string,
-    idempotencyKey: string,
-  ): Promise<SubscriptionIdempotencyStoreRecord | null> {
-    return this.store.get(`${command}:${idempotencyKey}`) ?? null;
-  }
-
-  async set(
-    command: string,
-    idempotencyKey: string,
-    record: SubscriptionIdempotencyStoreRecord,
-  ): Promise<void> {
-    this.store.set(`${command}:${idempotencyKey}`, record);
-  }
-}
-
 class ConsoleSubscriptionEventPublisher implements SubscriptionEventPublisher {
   async publish(event: SubscriptionDomainEvent): Promise<void> {
     console.log(JSON.stringify({ type: "domain_event", ...event }));
@@ -89,7 +67,8 @@ class ConsoleSubscriptionAuditLogger implements SubscriptionAuditLogger {
 
 const subscriptionDeps: SubscriptionUseCaseDeps = {
   repository: new InMemorySubscriptionRepository(),
-  idempotencyStore: new InMemorySubscriptionIdempotencyStore(),
+  idempotencyStore:
+    createInMemoryAsyncIdempotencyStore<Subscription>() satisfies SubscriptionIdempotencyStore,
   eventPublisher: new ConsoleSubscriptionEventPublisher(),
   auditLogger: new ConsoleSubscriptionAuditLogger(),
 };

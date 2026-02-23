@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type {
+  IdempotencyRecord,
   Subscription,
   SubscriptionAuditEvent,
   SubscriptionDomainEvent,
@@ -10,7 +11,6 @@ import {
   type SubscriptionAuditLogger,
   type SubscriptionEventPublisher,
   type SubscriptionIdempotencyStore,
-  type SubscriptionIdempotencyStoreRecord,
   type SubscriptionRepository,
   type SubscriptionUseCaseDeps,
 } from "./subscription.js";
@@ -32,19 +32,19 @@ class InMemorySubscriptionRepository implements SubscriptionRepository {
 }
 
 class InMemorySubscriptionIdempotencyStore implements SubscriptionIdempotencyStore {
-  private readonly store = new Map<string, SubscriptionIdempotencyStoreRecord>();
+  private readonly store = new Map<string, IdempotencyRecord<Subscription>>();
 
   async get(
     command: string,
     idempotencyKey: string,
-  ): Promise<SubscriptionIdempotencyStoreRecord | null> {
+  ): Promise<IdempotencyRecord<Subscription> | null> {
     return this.store.get(`${command}:${idempotencyKey}`) ?? null;
   }
 
   async set(
     command: string,
     idempotencyKey: string,
-    record: SubscriptionIdempotencyStoreRecord,
+    record: IdempotencyRecord<Subscription>,
   ): Promise<void> {
     this.store.set(`${command}:${idempotencyKey}`, record);
   }

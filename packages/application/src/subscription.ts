@@ -3,7 +3,6 @@ import {
   CancelSubscriptionNowCommandInput,
   CreateSubscriptionCommandInput,
   DowngradeSubscriptionCommandInput,
-  IdempotencyRecord,
   Subscription,
   SubscriptionAuditEvent,
   SubscriptionCommandContext,
@@ -17,15 +16,12 @@ import {
   applyCancelNow,
   applyCancelAtPeriodEnd,
 } from "@grantledger/domain";
-import {
-  ConflictError,
-  NotFoundError,
-  ValidationError,
-} from "./errors.js";
+import { ConflictError, NotFoundError, ValidationError } from "./errors.js";
 import {
   AsyncIdempotencyStore,
   executeIdempotent,
   IdempotencyConflictError,
+  IdempotencyInProgressError,
   MissingIdempotencyKeyError,
 } from "./idempotency.js";
 
@@ -43,6 +39,11 @@ export class SubscriptionValidationError extends ValidationError {
 }
 export class SubscriptionIdempotencyConflictError extends IdempotencyConflictError {
   constructor(message = "Same idempotency key with different payload") {
+    super(message);
+  }
+}
+export class SubscriptionIdempotencyInProgressError extends ConflictError {
+  constructor(message = "Subscription command is already processing") {
     super(message);
   }
 }
@@ -66,22 +67,7 @@ export interface SubscriptionAuditLogger {
   log(event: SubscriptionAuditEvent): Promise<void>;
 }
 
-export interface SubscriptionIdempotencyStoreRecord {
-  fingerprint: string;
-  response: Subscription;
-}
-
-export interface SubscriptionIdempotencyStore {
-  get(
-    command: string,
-    idempotencyKey: string,
-  ): Promise<SubscriptionIdempotencyStoreRecord | null>;
-  set(
-    command: string,
-    idempotencyKey: string,
-    record: SubscriptionIdempotencyStoreRecord,
-  ): Promise<void>;
-}
+export type SubscriptionIdempotencyStore = AsyncIdempotencyStore<Subscription>;
 
 export interface SubscriptionUseCaseDeps {
   repository: SubscriptionRepository;
@@ -95,35 +81,6 @@ function requireIdempotencyKey(context: SubscriptionCommandContext): string {
     throw new SubscriptionValidationError("idempotencyKey is required");
   }
   return context.idempotencyKey;
-}
-
-function toAsyncStore(
-  store: SubscriptionIdempotencyStore,
-): AsyncIdempotencyStore<Subscription> {
-  return {
-    async get(scope: string, key: string): Promise<IdempotencyRecord<Subscription> | null> {
-      const existing = await store.get(scope, key);
-      if (!existing) return null;
-
-      return {
-        key,
-        payloadHash: existing.fingerprint,
-        status: "completed",
-        response: existing.response,
-        createdAt: "",
-      };
-    },
-    async set(
-      scope: string,
-      key: string,
-      record: IdempotencyRecord<Subscription>,
-    ): Promise<void> {
-      await store.set(scope, key, {
-        fingerprint: record.payloadHash,
-        response: record.response,
-      });
-    },
-  };
 }
 
 async function runIdempotentCommand(
@@ -140,7 +97,7 @@ async function runIdempotentCommand(
       scope: command,
       key: idempotencyKey,
       payload: payloadForFingerprint,
-      store: toAsyncStore(deps.idempotencyStore),
+      store: deps.idempotencyStore,
       execute,
     });
 
@@ -152,6 +109,11 @@ async function runIdempotentCommand(
     if (error instanceof IdempotencyConflictError) {
       throw new SubscriptionIdempotencyConflictError(
         "Same idempotency key with different payload",
+      );
+    }
+    if (error instanceof IdempotencyInProgressError) {
+      throw new SubscriptionIdempotencyInProgressError(
+        "Subscription command is already processing",
       );
     }
     throw error;

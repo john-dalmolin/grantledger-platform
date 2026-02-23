@@ -9,7 +9,11 @@ import {
   ForbiddenError,
 } from "./errors.js";
 
-export { AuthenticationError, BadRequestError, ForbiddenError } from "./errors.js";
+export {
+  AuthenticationError,
+  BadRequestError,
+  ForbiddenError,
+} from "./errors.js";
 
 export interface ResolveRequestContextInput {
   user: AuthenticatedUser | null;

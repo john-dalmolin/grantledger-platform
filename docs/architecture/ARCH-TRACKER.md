@@ -19,6 +19,7 @@ Deliver structural improvements without blocking feature delivery.
 - Standardize exception-to-API response mapping
 - Introduce generic idempotency executor
 - Introduce i18n foundation (`en_US` baseline)
+- Finalize hardening for idempotency states, dedupe extraction, and style guidance
 
 ## Out of Scope
 
@@ -102,6 +103,13 @@ Deliver structural improvements without blocking feature delivery.
   - Merge SHA: `64e2d3d3b43943459944b36dc52af2df039a5724`
   - Notes: Introduced i18n foundation with en-US baseline and API integration through shared translator.
 
+- [ ] ARCH-008 - Final hardening for idempotency states, shared dedupe, and style guideline
+  - Status: IN_PROGRESS
+  - Issue: `#50`
+  - Branch: `chore/arch-008-final-hardening`
+  - PR: `_to be added_`
+  - Notes: Introduce stateful idempotency (`processing/completed/failed`), extract shared idempotency/error helpers, and formalize classes vs functions guideline.
+
 ## ADR References
 
 - [x] ADR-005 - Domain vs Application boundary
@@ -109,7 +117,9 @@ Deliver structural improvements without blocking feature delivery.
 - [x] ADR-007 - Date/time and timezone policy (accepted)
 - [x] ADR-008 - Error and response standardization (accepted)
 - [x] ADR-009 - Generic idempotency strategy (accepted)
-- [ ] ADR - i18n baseline approach
+- [x] ADR-010 - i18n foundation with `en_US` baseline (accepted)
+- [ ] ADR-011 - Idempotency state machine and concurrency strategy (proposed)
+- [ ] ADR-012 - Classes vs functions guideline (proposed)
 
 ## Quality Gates (mandatory per PR)
 
