@@ -19,6 +19,7 @@ Canonical references:
 - ARCH-005 completed (`#40`, merge `b72ef69`)
 - ARCH-006 completed (`#43`, merge `0706202`)
 - ARCH-007 completed (`#46`, merge `64e2d3d`)
+- ARCH-008 in progress (`issue pending`, branch `chore/arch-008-final-hardening`)
 
 ## Target Architecture Principles
 
@@ -30,13 +31,15 @@ Canonical references:
 
 ## Current Prioritized Sequence
 
-1. ARCH-007: i18n foundation (`en_US`) (completed)
+1. ARCH-008: final hardening (idempotency states + shared dedupe + style guideline) (in progress)
+2. ARCH-009: invoice idempotent use-case rollout (planned)
 
-## Next execution focus: ARCH stream closed (all planned slices completed)
+## Next execution focus: ARCH-008
 
-- Introduce translation boundary in API/application layers without business-rule changes.
-- Add canonical message catalog with stable keys and `en_US` baseline.
-- Prepare locale-aware error/message rendering while preserving backward compatibility.
+- Introduce idempotency state machine with `processing/completed/failed`.
+- Extract reusable shared helpers for idempotency fingerprint and error envelope.
+- Publish team guideline for classes vs pure functions (ADR + CONTRIBUTING).
+- Prepare invoice idempotent orchestration base and defer full rollout to ARCH-009.
 
 ## Delivery Strategy
 
