@@ -1,6 +1,6 @@
 # ADR-011: Idempotency State Machine and Concurrency Strategy
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-02-21
 - Deciders: Platform Team
 
@@ -44,5 +44,4 @@ Additional decisions:
 
 ## Follow-up
 
-- Mark this ADR as `Accepted` when ARCH-008 is merged.
 - Implement full invoice idempotent orchestration in ARCH-009 using this model.

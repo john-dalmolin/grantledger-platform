@@ -19,7 +19,7 @@ Canonical references:
 - ARCH-005 completed (`#40`, merge `b72ef69`)
 - ARCH-006 completed (`#43`, merge `0706202`)
 - ARCH-007 completed (`#46`, merge `64e2d3d`)
-- ARCH-008 in progress (`#50`, branch `chore/arch-008-final-hardening`)
+- ARCH-008 completed (`#49`, merge `bef4fbc`)
 
 ## Target Architecture Principles
 
@@ -31,10 +31,10 @@ Canonical references:
 
 ## Current Prioritized Sequence
 
-1. ARCH-008: final hardening (idempotency states + shared dedupe + style guideline) (in progress)
+1. ARCH-008: final hardening (idempotency states + shared dedupe + style guideline) (completed)
 2. ARCH-009: invoice idempotent use-case rollout (planned)
 
-## Next execution focus: ARCH-008
+## Next execution focus: ARCH-009
 
 - Introduce idempotency state machine with `processing/completed/failed`.
 - Extract reusable shared helpers for idempotency fingerprint and error envelope.
