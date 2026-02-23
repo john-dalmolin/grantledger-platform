@@ -127,7 +127,7 @@ Deliver structural improvements without blocking feature delivery.
   - Issue: `#55`
   - Branch: `chore/arch-010-invoice-infra-hardening`
   - PR: `#56`
-  - Merge SHA: `__MERGE_SHA_COMPLETO__`
+  - Merge SHA: `487c7bf621cc8f657cd0911c0255c7a86007a577`
   - Notes: Replace in-memory invoice async infrastructure with durable queue/store, add retry/backoff + dead-letter strategy, and observability while preserving ARCH-009 public contracts.
 
 ## ADR References
