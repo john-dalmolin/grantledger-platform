@@ -119,8 +119,8 @@ Deliver structural improvements without blocking feature delivery.
 - [x] ADR-008 - Error and response standardization (accepted)
 - [x] ADR-009 - Generic idempotency strategy (accepted)
 - [x] ADR-010 - i18n foundation with `en_US` baseline (accepted)
-- [ ] ADR-011 - Idempotency state machine and concurrency strategy (accepted)
-- [ ] ADR-012 - Classes vs functions guideline (accepted)
+- [x] ADR-011 - Idempotency state machine and concurrency strategy (accepted)
+- [x] ADR-012 - Classes vs functions guideline (accepted)
 
 ## Quality Gates (mandatory per PR)
 
