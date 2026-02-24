@@ -21,7 +21,7 @@ import {
   executeIdempotent,
   type AsyncIdempotencyStore,
 } from "./idempotency.js";
-import { NotFoundError } from "./errors.js";
+import { ConflictError, NotFoundError } from "./errors.js";
 
 export interface InvoiceRepository {
   findByCycleKey(cycleKey: string): Promise<Invoice | null>;
@@ -46,6 +46,8 @@ export interface InvoiceGenerationJob {
   nextAttemptAt: string;
   lastError?: string;
   deadLetteredAt?: string;
+  replayOfJobId?: string;
+  replayReason?: string;
 }
 
 export interface InvoiceJobStore {
@@ -78,7 +80,17 @@ export interface InvoiceJobObserver {
     job: InvoiceGenerationJob,
     reason: string,
   ): Promise<void> | void;
+  onJobEnqueued?(job: InvoiceGenerationJob): Promise<void> | void;
 }
+
+export interface ReplayInvoiceGenerationJobInput {
+  jobId: string;
+  reason?: string;
+}
+
+export type ReplayInvoiceGenerationJobResult =
+  | { status: "replayed"; jobId: string; replayOfJobId: string }
+  | { status: "skipped_already_completed"; jobId: string; invoiceId: string };
 
 const DEFAULT_MAX_ATTEMPTS = 3;
 const noopInvoiceJobObserver: InvoiceJobObserver = {};
@@ -142,6 +154,12 @@ export type ProcessNextInvoiceGenerationJobResult =
 
 export class InvoiceGenerationJobNotFoundError extends NotFoundError {
   constructor(message = "Invoice generation job not found") {
+    super(message);
+  }
+}
+
+export class InvoiceJobReplayNotAllowedError extends ConflictError {
+  constructor(message = "Only failed jobs can be replayed") {
     super(message);
   }
 }
@@ -260,16 +278,10 @@ export function createInMemoryInvoiceJobStore(
     async markCompleted(jobId: string, invoiceId: string): Promise<void> {
       const current = requireJob(jobs, jobId);
       jobs.set(jobId, {
-        id: current.id,
+        ...current,
         status: "completed",
-        cycleKey: current.cycleKey,
-        input: current.input,
-        createdAt: current.createdAt,
         updatedAt: now(),
         invoiceId,
-        attemptCount: current.attemptCount,
-        maxAttempts: current.maxAttempts,
-        nextAttemptAt: current.nextAttemptAt,
       });
     },
 
@@ -328,6 +340,8 @@ export async function enqueueInvoiceGeneration(
   deps: InvoiceUseCaseDeps,
   input: EnqueueInvoiceGenerationInput,
 ): Promise<EnqueueInvoiceGenerationResult> {
+  const observer = observerOf(deps);
+
   const { response, replayed } = await executeIdempotent<
     EnqueueInvoiceGenerationPayload,
     EnqueueInvoiceGenerationResponse
@@ -355,6 +369,7 @@ export async function enqueueInvoiceGeneration(
       };
 
       await deps.invoiceJobStore.enqueue(job);
+      await notifyObserver("job_enqueued", () => observer.onJobEnqueued?.(job));
 
       return {
         jobId,
@@ -499,6 +514,84 @@ export async function processNextInvoiceGenerationJob(
       reason,
     };
   }
+}
+
+export async function replayInvoiceGenerationJob(
+  deps: InvoiceUseCaseDeps,
+  input: ReplayInvoiceGenerationJobInput,
+): Promise<ReplayInvoiceGenerationJobResult> {
+  const sourceJob = await deps.invoiceJobStore.get(input.jobId);
+
+  if (!sourceJob) {
+    throw new InvoiceGenerationJobNotFoundError();
+  }
+
+  if (sourceJob.status !== "failed") {
+    throw new InvoiceJobReplayNotAllowedError();
+  }
+
+  const cycleKey =
+    sourceJob.cycleKey && sourceJob.cycleKey.length > 0
+      ? sourceJob.cycleKey
+      : buildDeterministicCycleKey(sourceJob.input);
+
+  const existingInvoice = await deps.invoiceRepository.findByCycleKey(cycleKey);
+
+  if (existingInvoice) {
+    return {
+      status: "skipped_already_completed",
+      jobId: sourceJob.id,
+      invoiceId: existingInvoice.id,
+    };
+  }
+
+  const nowIso = resolveNow(deps);
+  const replayReason =
+    input.reason?.trim() && input.reason.trim().length > 0
+      ? input.reason.trim()
+      : "manual replay";
+
+  const replayJob: InvoiceGenerationJob = {
+    ...sourceJob,
+    id: resolveId(deps),
+    status: "queued",
+    cycleKey,
+    createdAt: nowIso,
+    updatedAt: nowIso,
+    attemptCount: 0,
+    nextAttemptAt: nowIso,
+    replayOfJobId: sourceJob.id,
+    replayReason,
+  };
+
+  await deps.invoiceJobStore.enqueue(replayJob);
+
+  const observer = observerOf(deps);
+  await notifyObserver("job_enqueued", () =>
+    observer.onJobEnqueued?.(replayJob),
+  );
+
+  await deps.invoiceAuditLogger.log({
+    action: "invoice.reissue",
+    tenantId: replayJob.input.tenantId,
+    subscriptionId: replayJob.input.subscriptionId,
+    invoiceId: sourceJob.invoiceId ?? "n/a",
+    traceId: replayJob.input.traceId,
+    occurredAt: nowIso,
+    metadata: {
+      sourceJobId: sourceJob.id,
+      replayJobId: replayJob.id,
+      replayReason,
+      cycleKey,
+      calculationVersion: replayJob.input.calculationVersion,
+    },
+  });
+
+  return {
+    status: "replayed",
+    jobId: replayJob.id,
+    replayOfJobId: sourceJob.id,
+  };
 }
 
 export async function getInvoiceGenerationJobStatus(
