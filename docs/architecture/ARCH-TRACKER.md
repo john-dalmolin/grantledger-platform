@@ -157,6 +157,8 @@ Deliver structural improvements without blocking feature delivery.
 - [x] ADR-012 - Classes vs functions guideline (accepted)
 - [x] ADR-013 - Async idempotent invoice rollout (accepted)
 - [x] ADR-014 - Durable invoice async infrastructure (accepted)
+- [x] ADR-015 - Invoice async operational readiness (accepted)
+- [ ] ADR-016 - Schema-first contracts, unified time policy, and boundary dedup polish (proposed)
 
 ## Quality Gates (mandatory per PR)
 
