@@ -1,6 +1,6 @@
 # ADR-015: Invoice Async Operational Readiness (Observability + Replay Controls)
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-02-23
 - Deciders: Platform Team
 
@@ -40,4 +40,3 @@ Public API/application contracts introduced in ARCH-009/010 must remain backward
 
 ## Follow-up
 
-- Mark this ADR as `Accepted` when ARCH-011 is merged.
