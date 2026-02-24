@@ -22,6 +22,7 @@ Canonical references:
 - ARCH-008 completed (`#49`, merge `bef4fbc`)
 - ARCH-009 completed (`#53`, merge `5913159`)
 - ARCH-010 completed (`#56`, merge `487c7bf`)
+- ARCH-011 in progress (`#58`, branch `chore/arch-011-invoice-ops-readiness`)
 
 ## Target Architecture Principles
 
@@ -34,7 +35,7 @@ Canonical references:
 ## Current Prioritized Sequence
 
 1. ARCH-010: invoice async infrastructure hardening (durable queue + retries + observability) (completed)
-2. ARCH-011: architecture follow-up placeholder (planned)
+2. ARCH-011: invoice async operational readiness (observability + replay controls) (in progress)
 
 - Preserve API/application contracts delivered in ARCH-009 while evolving infrastructure.
 
