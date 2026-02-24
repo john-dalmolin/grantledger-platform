@@ -23,6 +23,7 @@ Canonical references:
 - ARCH-009 completed (`#53`, merge `5913159`)
 - ARCH-010 completed (`#56`, merge `487c7bf`)
 - ARCH-011 completed (`#59`, merge `e58acbb`)
+- ARCH-012 in progress (`#`, branch `chore/arch-012-schema-time-boundaries`)
 
 ## Target Architecture Principles
 
