@@ -73,3 +73,10 @@ Canonical references:
 - Validation, time policy, and error mapping are standardized.
 - Idempotency orchestration is generic and reusable.
 - Governance docs stay synchronized with code and PR lifecycle.
+
+## Next execution focus: ARCH-012
+
+- Enforce schema-first contracts (Zod schemas as source of truth + inferred TypeScript types).
+- Unify datetime parsing/arithmetic through Luxon helpers in shared.
+- Remove duplicated orchestration logic and keep domain/application boundaries explicit.
+- Preserve current API behavior and standardized error envelope semantics.
