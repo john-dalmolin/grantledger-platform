@@ -23,6 +23,7 @@ Canonical references:
 - ARCH-009 completed (`#53`, merge `5913159`)
 - ARCH-010 completed (`#56`, merge `487c7bf`)
 - ARCH-011 completed (`#59`, merge `e58acbb`)
+- ARCH-012 in progress (`#61`, branch `chore/arch-012-schema-time-boundaries`)
 
 ## Target Architecture Principles
 
@@ -73,3 +74,10 @@ Canonical references:
 - Validation, time policy, and error mapping are standardized.
 - Idempotency orchestration is generic and reusable.
 - Governance docs stay synchronized with code and PR lifecycle.
+
+## Next execution focus: ARCH-012
+
+- Enforce schema-first contracts (Zod schemas as source of truth + inferred TypeScript types).
+- Unify datetime parsing/arithmetic through Luxon helpers in shared.
+- Remove duplicated orchestration logic and keep domain/application boundaries explicit.
+- Preserve current API behavior and standardized error envelope semantics.

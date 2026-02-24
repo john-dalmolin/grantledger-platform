@@ -138,6 +138,13 @@ Deliver structural improvements without blocking feature delivery.
   - Merge SHA: `e58acbb87aba2eb334bf99d3f2d77d84c364434f`
   - Notes: Add operational observability, replay safeguards, and runbook-level guidance for async invoice flow without changing ARCH-009/010 API contracts.
 
+- [ ] ARCH-012 - Schema-first contracts, unified time policy, and boundary dedup polish
+  - Status: IN_PROGRESS
+  - Issue: `#61`
+  - Branch: `chore/arch-012-schema-time-boundaries`
+  - PR: `_to be added_`
+  - Notes: Enforce schema-first contracts (Zod as source of truth), unify Luxon datetime policy, and remove duplicated boundary orchestration while preserving API behavior.
+
 ## ADR References
 
 - [x] ADR-005 - Domain vs Application boundary
