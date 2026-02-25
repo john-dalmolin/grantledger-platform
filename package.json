@@ -6,11 +6,12 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run -ws --if-present build",
+    "build": "npm run --workspaces --if-present build",
     "lint": "eslint \"{apps,packages}/**/*.ts\"",
-    "test": "vitest run",
+    "test": "npm run --workspaces --if-present test",
     "typecheck": "tsc -b",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "quality:gate": "npm run lint && npm run typecheck && npm run build && npm run test"
   },
   "packageManager": "npm@10.9.2",
   "engines": {
