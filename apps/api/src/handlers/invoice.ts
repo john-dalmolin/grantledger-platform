@@ -25,8 +25,42 @@ const defaultInvoiceHandlerDeps: InvoiceHandlersDeps = {
   invoiceUseCases: getSharedInvoiceUseCaseDeps(),
 };
 
+type ParsedEnqueueInvoiceGenerationPayload = ReturnType<
+  typeof enqueueInvoiceGenerationPayloadSchema.parse
+>;
+
 function traceIdFromHeaders(headers: Headers): string | undefined {
   return getHeader(headers, "x-trace-id") ?? undefined;
+}
+
+function normalizeEnqueueInvoiceGenerationPayload(
+  parsedPayload: ParsedEnqueueInvoiceGenerationPayload,
+): EnqueueInvoiceGenerationPayload {
+  return {
+    tenantId: parsedPayload.tenantId,
+    subscriptionId: parsedPayload.subscriptionId,
+    customerId: parsedPayload.customerId,
+    planId: parsedPayload.planId,
+    planVersionId: parsedPayload.planVersionId,
+    priceAmountInCents: parsedPayload.priceAmountInCents,
+    currency: parsedPayload.currency,
+    periodStart: parsedPayload.periodStart,
+    periodEnd: parsedPayload.periodEnd,
+    calculationVersion: parsedPayload.calculationVersion,
+    traceId: parsedPayload.traceId,
+    ...(parsedPayload.proratedDays !== undefined
+      ? { proratedDays: parsedPayload.proratedDays }
+      : {}),
+    ...(parsedPayload.totalDaysInPeriod !== undefined
+      ? { totalDaysInPeriod: parsedPayload.totalDaysInPeriod }
+      : {}),
+    ...(parsedPayload.discountInCents !== undefined
+      ? { discountInCents: parsedPayload.discountInCents }
+      : {}),
+    ...(parsedPayload.taxRateBps !== undefined
+      ? { taxRateBps: parsedPayload.taxRateBps }
+      : {}),
+  };
 }
 
 export async function handleEnqueueInvoiceGeneration(
@@ -49,35 +83,9 @@ export async function handleEnqueueInvoiceGeneration(
     }
 
     const idempotencyKey = getHeader(headers, "idempotency-key");
-    const normalizedPayload: EnqueueInvoiceGenerationPayload = {
-      tenantId: parsedPayload.tenantId,
-      subscriptionId: parsedPayload.subscriptionId,
-      customerId: parsedPayload.customerId,
-      planId: parsedPayload.planId,
-      planVersionId: parsedPayload.planVersionId,
-      priceAmountInCents: parsedPayload.priceAmountInCents,
-      currency: parsedPayload.currency,
-      periodStart: parsedPayload.periodStart,
-      periodEnd: parsedPayload.periodEnd,
-      calculationVersion: parsedPayload.calculationVersion,
-      traceId: parsedPayload.traceId,
-      ...(parsedPayload.proratedDays !== undefined
-        ? { proratedDays: parsedPayload.proratedDays }
-        : {}),
-      ...(parsedPayload.totalDaysInPeriod !== undefined
-        ? { totalDaysInPeriod: parsedPayload.totalDaysInPeriod }
-        : {}),
-      ...(parsedPayload.discountInCents !== undefined
-        ? { discountInCents: parsedPayload.discountInCents }
-        : {}),
-      ...(parsedPayload.taxRateBps !== undefined
-        ? { taxRateBps: parsedPayload.taxRateBps }
-        : {}),
-    };
-
     const result = await enqueueInvoiceGeneration(deps.invoiceUseCases, {
       idempotencyKey,
-      payload: normalizedPayload,
+      payload: normalizeEnqueueInvoiceGenerationPayload(parsedPayload),
     });
 
     return {
