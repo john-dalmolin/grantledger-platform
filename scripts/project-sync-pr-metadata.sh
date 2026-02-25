@@ -16,8 +16,13 @@ need() {
 need gh
 need jq
 
-to_lower() { printf '%s' "${1:-}" | tr '[:upper:]' '[:lower:]'; }
-to_upper() { printf '%s' "${1:-}" | tr '[:lower:]' '[:upper:]'; }
+to_lower() {
+  printf '%s' "${1:-}" | tr '[:upper:]' '[:lower:]'
+}
+
+to_upper() {
+  printf '%s' "${1:-}" | tr '[:lower:]' '[:upper:]'
+}
 
 project_id=$(gh project view "$PROJECT_NUMBER" --owner "$OWNER" --format json --jq '.id')
 fields_json=$(gh project field-list "$PROJECT_NUMBER" --owner "$OWNER" --format json)
@@ -244,9 +249,9 @@ apply_if_changed() {
   changed_fields=$((changed_fields + 1))
 }
 
-items_jq='.items[] | select((.content.type // "")=="PullRequest") | {id, url:(.content.url // ""), milestone:(.milestone.title // ""), status:(.status // ""), priority:(.priority // ""), area:(.area // ""), type:(.type // ""), wave:(.wave // ""), risk:(.risk // "")} '
+items_jq='.items[] | select((.content.type // "")=="PullRequest") | [.id, (.content.url // ""), (.milestone.title // ""), (.status // ""), (.priority // ""), (.area // ""), (.type // ""), (.wave // ""), (.risk // "")] | @tsv'
 if [[ -n "$ONLY_PR_NUMBER" ]]; then
-  items_jq=".items[] | select((.content.type // \"\")==\"PullRequest\" and (((.content.url // \"\") | split(\"/\") | last) == \"${ONLY_PR_NUMBER}\")) | {id, url:(.content.url // \"\"), milestone:(.milestone.title // \"\"), status:(.status // \"\"), priority:(.priority // \"\"), area:(.area // \"\"), type:(.type // \"\"), wave:(.wave // \"\"), risk:(.risk // \"\")} "
+  items_jq=".items[] | select((.content.type // \"\")==\"PullRequest\" and ((.content.url // \"\") | test(\"/pull/${ONLY_PR_NUMBER}$\"))) | [.id, (.content.url // \"\"), (.milestone.title // \"\"), (.status // \"\"), (.priority // \"\"), (.area // \"\"), (.type // \"\"), (.wave // \"\"), (.risk // \"\")] | @tsv"
 fi
 
 updated=0
@@ -254,21 +259,7 @@ skipped=0
 warnings=0
 changed_fields_total=0
 
-while IFS= read -r row; do
-  [[ -z "$row" ]] && continue
-
-  obj=$(jq -c 'if type=="string" then fromjson else . end' <<<"$row")
-
-  item_id=$(jq -r '.id // ""' <<<"$obj")
-  url=$(jq -r '.url // ""' <<<"$obj")
-  milestone=$(jq -r '.milestone // ""' <<<"$obj")
-  current_status=$(jq -r '.status // ""' <<<"$obj")
-  current_priority=$(jq -r '.priority // ""' <<<"$obj")
-  current_area=$(jq -r '.area // ""' <<<"$obj")
-  current_type=$(jq -r '.type // ""' <<<"$obj")
-  current_wave=$(jq -r '.wave // ""' <<<"$obj")
-  current_risk=$(jq -r '.risk // ""' <<<"$obj")
-
+while IFS=$'\t' read -r item_id url milestone current_status current_priority current_area current_type current_wave current_risk; do
   [[ -z "$url" ]] && continue
 
   repo=$(echo "$url" | awk -F/ '{print $4 "/" $5}')
@@ -317,23 +308,41 @@ while IFS= read -r row; do
   status_name=$(resolve_status "$state" "$merged_at" "$is_draft" "$labels_csv" "$current_status")
 
   priority_label=$(label_value "$labels_csv" "priority:")
-  priority_name=$(pick_valid_value "Priority" "$(normalize_priority "$priority_label")" "$current_priority" "P2")
+  priority_name=$(pick_valid_value "Priority" \
+    "$(normalize_priority "$priority_label")" \
+    "$current_priority" \
+    "P2")
 
   area_label=$(label_value "$labels_csv" "area:")
-  area_name=$(pick_valid_value "Area" "$(to_lower "$area_label")" "$current_area" "$(infer_area_from_title "$title")" "platform")
+  area_name=$(pick_valid_value "Area" \
+    "$(to_lower "$area_label")" \
+    "$current_area" \
+    "$(infer_area_from_title "$title")" \
+    "platform")
 
   type_label=$(label_value "$labels_csv" "type:")
-  type_name=$(pick_valid_value "Type" "$(map_type_label "$type_label")" "$current_type" "$(infer_type_from_title "$title")" "architecture")
+  type_name=$(pick_valid_value "Type" \
+    "$(map_type_label "$type_label")" \
+    "$current_type" \
+    "$(infer_type_from_title "$title")" \
+    "architecture")
 
   risk_label=$(label_value "$labels_csv" "risk:")
-  risk_name=$(pick_valid_value "Risk" "$(normalize_risk "$risk_label")" "$current_risk" "$(infer_risk "$area_name" "$type_name")" "medium")
+  risk_name=$(pick_valid_value "Risk" \
+    "$(normalize_risk "$risk_label")" \
+    "$current_risk" \
+    "$(infer_risk "$area_name" "$type_name")" \
+    "medium")
 
   if [[ -n "$effective_milestone" ]]; then
     wave_from_milestone=$(infer_wave_from_milestone "$effective_milestone")
   else
     wave_from_milestone=""
   fi
-  wave_name=$(pick_valid_value "Wave" "$wave_from_milestone" "$current_wave" "Update")
+  wave_name=$(pick_valid_value "Wave" \
+    "$wave_from_milestone" \
+    "$current_wave" \
+    "Update")
 
   status_opt=""
   priority_opt=""
@@ -388,12 +397,12 @@ while IFS= read -r row; do
 
   changed_fields=0
 
-  apply_if_changed "$pr_number" "$item_id" "$FIELD_STATUS" "$status_opt" "$current_status" "$status_name" "Status"
+  apply_if_changed "$pr_number" "$item_id" "$FIELD_STATUS"   "$status_opt"   "$current_status"   "$status_name"   "Status"
   apply_if_changed "$pr_number" "$item_id" "$FIELD_PRIORITY" "$priority_opt" "$current_priority" "$priority_name" "Priority"
-  apply_if_changed "$pr_number" "$item_id" "$FIELD_AREA" "$area_opt" "$current_area" "$area_name" "Area"
-  apply_if_changed "$pr_number" "$item_id" "$FIELD_TYPE" "$type_opt" "$current_type" "$type_name" "Type"
-  apply_if_changed "$pr_number" "$item_id" "$FIELD_WAVE" "$wave_opt" "$current_wave" "$wave_name" "Wave"
-  apply_if_changed "$pr_number" "$item_id" "$FIELD_RISK" "$risk_opt" "$current_risk" "$risk_name" "Risk"
+  apply_if_changed "$pr_number" "$item_id" "$FIELD_AREA"     "$area_opt"     "$current_area"     "$area_name"     "Area"
+  apply_if_changed "$pr_number" "$item_id" "$FIELD_TYPE"     "$type_opt"     "$current_type"     "$type_name"     "Type"
+  apply_if_changed "$pr_number" "$item_id" "$FIELD_WAVE"     "$wave_opt"     "$current_wave"     "$wave_name"     "Wave"
+  apply_if_changed "$pr_number" "$item_id" "$FIELD_RISK"     "$risk_opt"     "$current_risk"     "$risk_name"     "Risk"
 
   if [[ "$DRY_RUN" == "1" ]]; then
     echo "DRY_RUN: PR #$pr_number changed_fields=$changed_fields"
