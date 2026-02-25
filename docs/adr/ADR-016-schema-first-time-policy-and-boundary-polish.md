@@ -1,6 +1,6 @@
 # ADR-016: Schema-First Contracts, Unified Time Policy, and Boundary Dedup Polish
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-02-24
 
 ## Context
@@ -50,4 +50,3 @@ Trade-offs:
 
 ## Follow-up
 
-- Mark this ADR as `Accepted` when ARCH-012 is merged.
