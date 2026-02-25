@@ -196,19 +196,10 @@ map_status_label() {
 
 resolve_status() {
   local state="$1"
-  local labels_csv="$2"
-  local current_status="$3"
-  local s mapped
+  local current_status="$2"
 
   if [[ "$state" == "CLOSED" ]]; then
     echo "Done"
-    return
-  fi
-
-  s=$(label_value "$labels_csv" "status:")
-  mapped=$(map_status_label "$s")
-  if [[ -n "$mapped" ]]; then
-    echo "$mapped"
     return
   fi
 
@@ -296,34 +287,27 @@ if [[ -n "$ONLY_WAVE" && "$inferred_wave_for_filter" != "$ONLY_WAVE" ]]; then
   continue
 fi
 
-  status_name=$(resolve_status "$state" "$labels_csv" "$current_status")
+  status_name=$(resolve_status "$state" "$current_status")
 
-  priority_label=$(label_value "$labels_csv" "priority:")
   priority_name=$(pick_valid_value "Priority" \
-    "$(normalize_priority "$priority_label")" \
-    "$current_priority" \
-    "P2")
+  "$current_priority" \
+  "P2")
 
-  area_label=$(label_value "$labels_csv" "area:")
   area_name=$(pick_valid_value "Area" \
-    "$(to_lower "$area_label")" \
-    "$current_area" \
-    "$(infer_area_from_title "$title")" \
-    "platform")
+  "$current_area" \
+  "$(infer_area_from_title "$title")" \
+  "platform")
 
-  type_label=$(label_value "$labels_csv" "type:")
   type_name=$(pick_valid_value "Type" \
-    "$(map_type_label "$type_label")" \
-    "$current_type" \
-    "$(infer_type_from_title "$title")" \
-    "architecture")
+  "$current_type" \
+  "$(infer_type_from_title "$title")" \
+  "architecture")
 
-  risk_label=$(label_value "$labels_csv" "risk:")
   risk_name=$(pick_valid_value "Risk" \
-    "$(normalize_risk "$risk_label")" \
-    "$current_risk" \
-    "$(infer_risk "$area_name" "$type_name")" \
-    "medium")
+  "$current_risk" \
+  "$(infer_risk "$area_name" "$type_name")" \
+  "medium")
+
 
   if [[ -n "$effective_milestone" ]]; then
     wave_from_milestone=$(infer_wave_from_milestone "$effective_milestone")

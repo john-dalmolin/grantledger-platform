@@ -198,19 +198,10 @@ resolve_status() {
   local state="$1"
   local merged_at="$2"
   local is_draft="$3"
-  local labels_csv="$4"
-  local current_status="$5"
-  local s mapped
+  local current_status="$4"
 
   if [[ -n "$merged_at" || "$state" == "CLOSED" || "$state" == "MERGED" ]]; then
     echo "Done"
-    return
-  fi
-
-  s=$(label_value "$labels_csv" "status:")
-  mapped=$(map_status_label "$s")
-  if [[ -n "$mapped" ]]; then
-    echo "$mapped"
     return
   fi
 
@@ -305,34 +296,26 @@ while IFS=$'\t' read -r item_id url milestone current_status current_priority cu
     continue
   fi
 
-  status_name=$(resolve_status "$state" "$merged_at" "$is_draft" "$labels_csv" "$current_status")
+  status_name=$(resolve_status "$state" "$merged_at" "$is_draft" "$current_status")
 
-  priority_label=$(label_value "$labels_csv" "priority:")
   priority_name=$(pick_valid_value "Priority" \
-    "$(normalize_priority "$priority_label")" \
-    "$current_priority" \
-    "P2")
+  "$current_priority" \
+  "P2")
 
-  area_label=$(label_value "$labels_csv" "area:")
   area_name=$(pick_valid_value "Area" \
-    "$(to_lower "$area_label")" \
-    "$current_area" \
-    "$(infer_area_from_title "$title")" \
-    "platform")
+  "$current_area" \
+  "$(infer_area_from_title "$title")" \
+  "platform")
 
-  type_label=$(label_value "$labels_csv" "type:")
   type_name=$(pick_valid_value "Type" \
-    "$(map_type_label "$type_label")" \
-    "$current_type" \
-    "$(infer_type_from_title "$title")" \
-    "architecture")
+  "$current_type" \
+  "$(infer_type_from_title "$title")" \
+  "architecture")
 
-  risk_label=$(label_value "$labels_csv" "risk:")
   risk_name=$(pick_valid_value "Risk" \
-    "$(normalize_risk "$risk_label")" \
-    "$current_risk" \
-    "$(infer_risk "$area_name" "$type_name")" \
-    "medium")
+  "$current_risk" \
+  "$(infer_risk "$area_name" "$type_name")" \
+  "medium")
 
   if [[ -n "$effective_milestone" ]]; then
     wave_from_milestone=$(infer_wave_from_milestone "$effective_milestone")
