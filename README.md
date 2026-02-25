@@ -49,6 +49,7 @@ It aims to give product and engineering teams confidence that billing behavior i
 - Schema-first invoice API contracts with Zod-inferred types to reduce contract drift.
 - Unified shared datetime policy (Luxon-based) across invoice orchestration paths.
 - Boundary-level payload normalization to reduce duplication and preserve API consistency.
+- Replay controls and observer-based operational hooks for async invoice lifecycle monitoring.
 - Async invoice generation flow across API + application + worker:
   - enqueue with `Idempotency-Key`
   - status polling by `jobId`
