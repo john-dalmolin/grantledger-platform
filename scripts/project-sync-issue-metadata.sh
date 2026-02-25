@@ -5,7 +5,9 @@ PROJECT_NUMBER="${PROJECT_NUMBER:-6}"
 OWNER="${OWNER:-@me}"
 LIMIT="${LIMIT:-200}"
 DRY_RUN="${DRY_RUN:-0}"
-ONLY_ISSUE_NUMBER="${1:-}"
+ONLY_OPEN="${ONLY_OPEN:-0}"      # 1 = processa só issues OPEN
+ONLY_WAVE="${ONLY_WAVE:-5}"       # ex.: "Wave 5"     # ex.: "Wave 5"
+ONLY_ISSUE_NUMBER="${1:-}"       # opcional: processa só 1 issue
 
 need() {
   command -v "$1" >/dev/null 2>&1 || { echo "Missing command: $1" >&2; exit 1; }
@@ -71,9 +73,6 @@ set_field() {
   local item_id="$1"
   local field="$2"
   local opt="$3"
-  if [[ -z "$opt" || "$opt" == "null" ]]; then
-    return 0
-  fi
   gh project item-edit --id "$item_id" --project-id "$project_id" --field-id "$field" --single-select-option-id "$opt" >/dev/null
 }
 
@@ -221,6 +220,28 @@ resolve_status() {
   echo "Backlog"
 }
 
+apply_if_changed() {
+  local issue_number="$1"
+  local item_id="$2"
+  local field_id="$3"
+  local opt_id="$4"
+  local current_value="$5"
+  local target_value="$6"
+  local field_name="$7"
+
+  if [[ "$current_value" == "$target_value" ]]; then
+    return 0
+  fi
+
+  if [[ "$DRY_RUN" == "1" ]]; then
+    echo "DRY_RUN: Issue #$issue_number field=$field_name ${current_value:-<empty>} -> ${target_value:-<empty>}"
+  else
+    set_field "$item_id" "$field_id" "$opt_id"
+  fi
+
+  changed_fields=$((changed_fields + 1))
+}
+
 items_jq='.items[] | select((.content.type // "")=="Issue") | [.id, (.content.url // ""), (.milestone.title // ""), (.status // ""), (.priority // ""), (.area // ""), (.type // ""), (.wave // ""), (.risk // "")] | @tsv'
 if [[ -n "$ONLY_ISSUE_NUMBER" ]]; then
   items_jq=".items[] | select((.content.type // \"\")==\"Issue\" and ((.content.url // \"\") | test(\"/issues/${ONLY_ISSUE_NUMBER}$\"))) | [.id, (.content.url // \"\"), (.milestone.title // \"\"), (.status // \"\"), (.priority // \"\"), (.area // \"\"), (.type // \"\"), (.wave // \"\"), (.risk // \"\")] | @tsv"
@@ -229,6 +250,7 @@ fi
 updated=0
 skipped=0
 warnings=0
+changed_fields_total=0
 
 while IFS=$'\t' read -r item_id url milestone current_status current_priority current_area current_type current_wave current_risk; do
   [[ -z "$url" ]] && continue
@@ -249,86 +271,115 @@ while IFS=$'\t' read -r item_id url milestone current_status current_priority cu
   labels_csv=$(echo "$issue_json" | jq -r '[.labels[].name] | join(",")')
   issue_milestone=$(echo "$issue_json" | jq -r '.milestone.title // ""')
 
+  if [[ "$ONLY_OPEN" == "1" && "$state" != "OPEN" ]]; then
+    echo "SKIP: Issue #$issue_number (closed, ONLY_OPEN=1)"
+    skipped=$((skipped + 1))
+    continue
+  fi
+
   effective_milestone="$milestone"
   if [[ -z "$effective_milestone" ]]; then
     effective_milestone="$issue_milestone"
   fi
 
+if [[ -n "$effective_milestone" ]]; then
+  inferred_wave_for_filter=$(infer_wave_from_milestone "$effective_milestone")
+elif [[ -n "$current_wave" ]]; then
+  inferred_wave_for_filter="$current_wave"
+else
+  inferred_wave_for_filter="Update"
+fi
+
+if [[ -n "$ONLY_WAVE" && "$inferred_wave_for_filter" != "$ONLY_WAVE" ]]; then
+  echo "SKIP: Issue #$issue_number (wave=$inferred_wave_for_filter, ONLY_WAVE=$ONLY_WAVE)"
+  skipped=$((skipped + 1))
+  continue
+fi
+
   status_name=$(resolve_status "$state" "$labels_csv" "$current_status")
 
-priority_label=$(label_value "$labels_csv" "priority:")
-priority_name=$(pick_valid_value "Priority" \
-  "$(normalize_priority "$priority_label")" \
-  "$current_priority" \
-  "P2")
+  priority_label=$(label_value "$labels_csv" "priority:")
+  priority_name=$(pick_valid_value "Priority" \
+    "$(normalize_priority "$priority_label")" \
+    "$current_priority" \
+    "P2")
 
-area_label=$(label_value "$labels_csv" "area:")
-area_name=$(pick_valid_value "Area" \
-  "$(to_lower "$area_label")" \
-  "$current_area" \
-  "$(infer_area_from_title "$title")" \
-  "platform")
+  area_label=$(label_value "$labels_csv" "area:")
+  area_name=$(pick_valid_value "Area" \
+    "$(to_lower "$area_label")" \
+    "$current_area" \
+    "$(infer_area_from_title "$title")" \
+    "platform")
 
-type_label=$(label_value "$labels_csv" "type:")
-type_name=$(pick_valid_value "Type" \
-  "$(map_type_label "$type_label")" \
-  "$current_type" \
-  "$(infer_type_from_title "$title")" \
-  "architecture")
+  type_label=$(label_value "$labels_csv" "type:")
+  type_name=$(pick_valid_value "Type" \
+    "$(map_type_label "$type_label")" \
+    "$current_type" \
+    "$(infer_type_from_title "$title")" \
+    "architecture")
 
-risk_label=$(label_value "$labels_csv" "risk:")
-risk_name=$(pick_valid_value "Risk" \
-  "$(normalize_risk "$risk_label")" \
-  "$current_risk" \
-  "$(infer_risk "$area_name" "$type_name")" \
-  "medium")
+  risk_label=$(label_value "$labels_csv" "risk:")
+  risk_name=$(pick_valid_value "Risk" \
+    "$(normalize_risk "$risk_label")" \
+    "$current_risk" \
+    "$(infer_risk "$area_name" "$type_name")" \
+    "medium")
 
-if [[ -n "$effective_milestone" ]]; then
-  wave_from_milestone=$(infer_wave_from_milestone "$effective_milestone")
-else
-  wave_from_milestone=""
-fi
-wave_name=$(pick_valid_value "Wave" \
-  "$wave_from_milestone" \
-  "$current_wave" \
-  "Update")
+  if [[ -n "$effective_milestone" ]]; then
+    wave_from_milestone=$(infer_wave_from_milestone "$effective_milestone")
+  else
+    wave_from_milestone=""
+  fi
+  wave_name=$(pick_valid_value "Wave" \
+    "$wave_from_milestone" \
+    "$current_wave" \
+    "Update")
 
+  # Option IDs só para campos alterados
+  status_opt=""
+  priority_opt=""
+  area_opt=""
+  type_opt=""
+  wave_opt=""
+  risk_opt=""
 
-  if [[ "$status_name" == "$current_status" \
-     && "$priority_name" == "$current_priority" \
-     && "$area_name" == "$current_area" \
-     && "$type_name" == "$current_type" \
-     && "$wave_name" == "$current_wave" \
-     && "$risk_name" == "$current_risk" ]]; then
+  if [[ "$status_name" != "$current_status" ]]; then status_opt=$(option_id "Status" "$status_name"); fi
+  if [[ "$priority_name" != "$current_priority" ]]; then priority_opt=$(option_id "Priority" "$priority_name"); fi
+  if [[ "$area_name" != "$current_area" ]]; then area_opt=$(option_id "Area" "$area_name"); fi
+  if [[ "$type_name" != "$current_type" ]]; then type_opt=$(option_id "Type" "$type_name"); fi
+  if [[ "$wave_name" != "$current_wave" ]]; then wave_opt=$(option_id "Wave" "$wave_name"); fi
+  if [[ "$risk_name" != "$current_risk" ]]; then risk_opt=$(option_id "Risk" "$risk_name"); fi
+
+  changed_candidates=0
+  missing=0
+
+  check_changed_field() {
+    local field_name="$1"
+    local current_value="$2"
+    local target_value="$3"
+    local opt="$4"
+
+    if [[ "$current_value" != "$target_value" ]]; then
+      changed_candidates=$((changed_candidates + 1))
+      if [[ -z "$opt" || "$opt" == "null" ]]; then
+        echo "WARN: option not found -> field=$field_name value=$target_value (issue #$issue_number)"
+        missing=1
+      fi
+    fi
+  }
+
+  check_changed_field "Status" "$current_status" "$status_name" "$status_opt"
+  check_changed_field "Priority" "$current_priority" "$priority_name" "$priority_opt"
+  check_changed_field "Area" "$current_area" "$area_name" "$area_opt"
+  check_changed_field "Type" "$current_type" "$type_name" "$type_opt"
+  check_changed_field "Wave" "$current_wave" "$wave_name" "$wave_opt"
+  check_changed_field "Risk" "$current_risk" "$risk_name" "$risk_opt"
+
+  if [[ "$changed_candidates" -eq 0 ]]; then
     echo "SKIP: Issue #$issue_number (no changes)"
     skipped=$((skipped + 1))
     continue
   fi
-
-  status_opt=$(option_id "Status" "$status_name")
-  priority_opt=$(option_id "Priority" "$priority_name")
-  area_opt=$(option_id "Area" "$area_name")
-  type_opt=$(option_id "Type" "$type_name")
-  wave_opt=$(option_id "Wave" "$wave_name")
-  risk_opt=$(option_id "Risk" "$risk_name")
-
-  missing=0
-  for spec in \
-    "Status:$status_opt:$status_name" \
-    "Priority:$priority_opt:$priority_name" \
-    "Area:$area_opt:$area_name" \
-    "Type:$type_opt:$type_name" \
-    "Wave:$wave_opt:$wave_name" \
-    "Risk:$risk_opt:$risk_name"
-  do
-    field_name=$(echo "$spec" | awk -F: '{print $1}')
-    opt_id=$(echo "$spec" | awk -F: '{print $2}')
-    opt_name=$(echo "$spec" | cut -d: -f3-)
-    if [[ -z "$opt_id" || "$opt_id" == "null" ]]; then
-      echo "WARN: option not found -> field=$field_name value=$opt_name (issue #$issue_number)"
-      missing=1
-    fi
-  done
 
   if [[ "$missing" == "1" ]]; then
     warnings=$((warnings + 1))
@@ -336,25 +387,28 @@ wave_name=$(pick_valid_value "Wave" \
     continue
   fi
 
+  changed_fields=0
+
+  apply_if_changed "$issue_number" "$item_id" "$FIELD_STATUS"   "$status_opt"   "$current_status"   "$status_name"   "Status"
+  apply_if_changed "$issue_number" "$item_id" "$FIELD_PRIORITY" "$priority_opt" "$current_priority" "$priority_name" "Priority"
+  apply_if_changed "$issue_number" "$item_id" "$FIELD_AREA"     "$area_opt"     "$current_area"     "$area_name"     "Area"
+  apply_if_changed "$issue_number" "$item_id" "$FIELD_TYPE"     "$type_opt"     "$current_type"     "$type_name"     "Type"
+  apply_if_changed "$issue_number" "$item_id" "$FIELD_WAVE"     "$wave_opt"     "$current_wave"     "$wave_name"     "Wave"
+  apply_if_changed "$issue_number" "$item_id" "$FIELD_RISK"     "$risk_opt"     "$current_risk"     "$risk_name"     "Risk"
+
   if [[ "$DRY_RUN" == "1" ]]; then
-    echo "DRY_RUN: Issue #$issue_number | status=$status_name priority=$priority_name area=$area_name type=$type_name wave=$wave_name risk=$risk_name"
-    updated=$((updated + 1))
-    continue
+    echo "DRY_RUN: Issue #$issue_number changed_fields=$changed_fields"
+  else
+    echo "UPDATED: Issue #$issue_number changed_fields=$changed_fields"
   fi
 
-  set_field "$item_id" "$FIELD_STATUS" "$status_opt"
-  set_field "$item_id" "$FIELD_PRIORITY" "$priority_opt"
-  set_field "$item_id" "$FIELD_AREA" "$area_opt"
-  set_field "$item_id" "$FIELD_TYPE" "$type_opt"
-  set_field "$item_id" "$FIELD_WAVE" "$wave_opt"
-  set_field "$item_id" "$FIELD_RISK" "$risk_opt"
-
-  echo "UPDATED: Issue #$issue_number -> status=$status_name, priority=$priority_name, area=$area_name, type=$type_name, wave=$wave_name, risk=$risk_name"
+  changed_fields_total=$((changed_fields_total + changed_fields))
   updated=$((updated + 1))
 done < <(gh project item-list "$PROJECT_NUMBER" --owner "$OWNER" --limit "$LIMIT" --format json --jq "$items_jq")
 
 echo ""
 echo "Sync complete."
-echo "Updated: $updated"
-echo "Skipped: $skipped"
+echo "Updated items: $updated"
+echo "Skipped items: $skipped"
 echo "Warnings: $warnings"
+echo "Changed fields total: $changed_fields_total"
