@@ -23,7 +23,7 @@ Canonical references:
 - ARCH-009 completed (`#53`, merge `5913159`)
 - ARCH-010 completed (`#56`, merge `487c7bf`)
 - ARCH-011 completed (`#59`, merge `e58acbb`)
-- ARCH-012 in progress (`#61`, branch `chore/arch-012-schema-time-boundaries`)
+- ARCH-012 completed (`#65`, merge `ea6db9a`)
 
 ## Target Architecture Principles
 
@@ -75,7 +75,7 @@ Canonical references:
 - Idempotency orchestration is generic and reusable.
 - Governance docs stay synchronized with code and PR lifecycle.
 
-## Next execution focus: ARCH-012
+## Next execution focus: ARCH-013
 
 - Enforce schema-first contracts (Zod schemas as source of truth + inferred TypeScript types).
 - Unify datetime parsing/arithmetic through Luxon helpers in shared.
