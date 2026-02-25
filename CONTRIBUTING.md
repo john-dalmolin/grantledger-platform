@@ -21,3 +21,27 @@ Prefer the smallest abstraction that keeps code readable, testable, and aligned 
 ## Pull request expectations
 
 For architecture-impacting changes, explain briefly why class-based or function-based style was chosen.
+
+## PR Metadata Standardization
+
+Use `scripts/pr-metadata-sync.sh` after creating a PR to keep milestone, assignee, label, issue closure and project fields consistent.
+
+Example:
+
+```bash
+./scripts/pr-metadata-sync.sh --pr 66 --issue 61
+```
+
+Optional overrides (all have defaults):
+
+```bash
+./scripts/pr-metadata-sync.sh \
+  --pr 66 \
+  --issue 61 \
+  --status Review \
+  --priority P1 \
+  --area platform \
+  --type architecture \
+  --wave Update \
+  --risk low
+```
