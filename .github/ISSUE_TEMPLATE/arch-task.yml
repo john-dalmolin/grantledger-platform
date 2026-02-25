@@ -1,0 +1,58 @@
+name: ARCH Task
+description: Create a new architecture step with explicit scope and DoD
+title: "[ARCH-XXX] "
+labels: ["architecture"]
+body:
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      placeholder: Why this matters now
+    validations:
+      required: true
+
+  - type: textarea
+    id: objective
+    attributes:
+      label: Objective
+      placeholder: Single clear outcome
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      placeholder: |
+        - [ ] item 1
+        - [ ] item 2
+    validations:
+      required: true
+
+  - type: textarea
+    id: out_of_scope
+    attributes:
+      label: Out of Scope
+      placeholder: |
+        - [ ] item 1
+    validations:
+      required: true
+
+  - type: textarea
+    id: dod
+    attributes:
+      label: Definition of Done
+      placeholder: |
+        - [ ] lint/typecheck/build/test green
+        - [ ] behavior validated
+        - [ ] docs/ADR updated if needed
+    validations:
+      required: true
+
+  - type: textarea
+    id: risks
+    attributes:
+      label: Risks and Mitigation
+      placeholder: Main risks + mitigation plan
+    validations:
+      required: true
