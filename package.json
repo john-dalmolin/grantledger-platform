@@ -8,10 +8,11 @@
   "scripts": {
     "build": "npm run --workspaces --if-present build",
     "lint": "eslint \"{apps,packages}/**/*.ts\"",
-    "test": "npm run --workspaces --if-present test",
+    "test": "vitest run",
     "typecheck": "tsc -b",
     "test:watch": "vitest",
-    "quality:gate": "npm run lint && npm run typecheck && npm run build && npm run test"
+    "quality:gate": "npm run lint && npm run typecheck && npm run build && npm run test",
+    "test:workspaces": "npm run --workspaces --if-present test"
   },
   "packageManager": "npm@10.9.2",
   "engines": {
