@@ -36,3 +36,16 @@ export function epochSecondsToUtcIso(seconds: number): string {
   }
   return iso;
 }
+
+export function addSecondsToIso(value: string, seconds: number): string {
+  const baseMillis = parseIsoToEpochMillis(value);
+  const iso = DateTime.fromMillis(baseMillis + seconds * 1000, {
+    zone: "utc",
+  }).toISO();
+
+  if (!iso) {
+    throw new Error("Failed to add seconds to ISO timestamp");
+  }
+
+  return iso;
+}

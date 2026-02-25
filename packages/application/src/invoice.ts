@@ -15,7 +15,12 @@ import {
   calculateInvoiceBreakdown,
   calculateInvoiceLines,
 } from "@grantledger/domain";
-import { hashPayload, utcNowIso } from "@grantledger/shared";
+import {
+  addSecondsToIso,
+  hashPayload,
+  parseIsoToEpochMillis,
+  utcNowIso,
+} from "@grantledger/shared";
 import {
   createInMemoryAsyncIdempotencyStore,
   executeIdempotent,
@@ -177,8 +182,7 @@ function computeRetryDelaySeconds(attemptCount: number): number {
 }
 
 function computeNextAttemptAt(nowIso: string, delaySeconds: number): string {
-  const baseMillis = Date.parse(nowIso);
-  return new Date(baseMillis + delaySeconds * 1000).toISOString();
+  return addSecondsToIso(nowIso, delaySeconds);
 }
 
 function buildEnqueueFingerprint(
@@ -246,15 +250,21 @@ export function createInMemoryInvoiceJobStore(
     },
     async claimNext(): Promise<InvoiceGenerationJob | null> {
       const nowIso = now();
-      const nowMillis = Date.parse(nowIso);
+      const nowMillis = parseIsoToEpochMillis(nowIso);
 
       for (const [jobId, candidate] of jobs.entries()) {
         if (candidate.status !== "queued") {
           continue;
         }
 
-        const nextAttemptMillis = Date.parse(candidate.nextAttemptAt);
-        if (Number.isNaN(nextAttemptMillis) || nextAttemptMillis > nowMillis) {
+        let nextAttemptMillis: number;
+        try {
+          nextAttemptMillis = parseIsoToEpochMillis(candidate.nextAttemptAt);
+        } catch {
+          continue;
+        }
+
+        if (nextAttemptMillis > nowMillis) {
           continue;
         }
 
