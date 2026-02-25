@@ -30,7 +30,7 @@ It aims to give product and engineering teams confidence that billing behavior i
 
 ## At a Glance
 
-> Current status on `main`: architecture hardening stream delivered through `ARCH-010`; next planned focus is `ARCH-011`.
+> Current status on `main`: architecture hardening stream delivered through `ARCH-012`; next planned focus is `ARCH-013`.
 
 - domain rules stay pure and deterministic
 - use cases orchestrate idempotency, retries, and audit flow
@@ -46,6 +46,10 @@ It aims to give product and engineering teams confidence that billing behavior i
 - Checkout orchestration through an application-level payment provider contract.
 - Subscription state-machine commands with idempotent mutation orchestration.
 - Webhook normalization + deduplication path with canonical event publishing contract.
+- Schema-first invoice API contracts with Zod-inferred types to reduce contract drift.
+- Unified shared datetime policy (Luxon-based) across invoice orchestration paths.
+- Boundary-level payload normalization to reduce duplication and preserve API consistency.
+- Replay controls and observer-based operational hooks for async invoice lifecycle monitoring.
 - Async invoice generation flow across API + application + worker:
   - enqueue with `Idempotency-Key`
   - status polling by `jobId`
@@ -104,7 +108,7 @@ docs/
   adr/
 ```
 
-## Async Invoice Flow (ARCH-009/010 Baseline)
+## Async Invoice Flow (ARCH-009/010/011/012 Baseline)
 
 ```mermaid
 flowchart LR
@@ -191,12 +195,15 @@ Architecture changes follow an issue-driven stream (`ARCH-*`) with mandatory doc
 - `ADR-012` Classes vs functions guideline
 - `ADR-013` Async idempotent invoice rollout
 - `ADR-014` Durable invoice async infrastructure strategy
+- `ADR-015` Invoice async operational readiness (observability + replay controls)
+- `ADR-016` Schema-first contracts, unified time policy, and boundary dedup polish
 
 ## Current Trade-offs and Next Steps
 
-- The repository currently exposes reference in-memory adapters in core flows for deterministic tests and low-friction local execution.
-- Retry, backoff, dead-letter semantics and observer-safe notifications are already modeled in application use cases.
-- Next architecture step (`ARCH-011`) should continue the infrastructure evolution while preserving the public contracts introduced in `ARCH-009`.
+- The repository still prioritizes deterministic in-memory adapters in key paths; a deeper durable production profile can continue in future streams.
+- Operational semantics (retry, backoff, dead-letter, replay controls, observer-safe notifications) are now modeled and documented across ARCH-010/011/012.
+- Contract drift risk was reduced by schema-first invoice boundaries, but broader schema-first consolidation can continue incrementally.
+- Next architecture step (`ARCH-013`) should build on this baseline while preserving the public contracts stabilized in ARCH-009+.
 
 ## Project Links
 
