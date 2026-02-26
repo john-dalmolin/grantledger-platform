@@ -16,7 +16,7 @@ import type { ApiResponse, Headers } from "../http/types.js";
 import { t, utcNowIso } from "@grantledger/shared";
 import { getHeader } from "../http/headers.js";
 
-class FakePaymentProvider implements PaymentProvider {
+class DefaultFakePaymentProvider implements PaymentProvider {
   public readonly name = "fake" as const;
 
   createCheckoutSession(
@@ -36,56 +36,74 @@ class FakePaymentProvider implements PaymentProvider {
   }
 }
 
-const fakePaymentProvider = new FakePaymentProvider();
+export interface StartCheckoutHandlerDeps {
+  paymentProvider: PaymentProvider;
+}
+
+export type StartCheckoutHandler = (
+  headers: Headers,
+  payload: StartCheckoutPayload,
+) => Promise<ApiResponse>;
 
 function localeFromHeaders(headers: Headers): string | undefined {
   return getHeader(headers, "accept-language") ?? undefined;
 }
 
-export async function handleStartCheckout(
-  headers: Headers,
-  payload: StartCheckoutPayload,
-): Promise<ApiResponse> {
-  const locale = localeFromHeaders(headers);
+export function createStartCheckoutHandler(
+  deps: StartCheckoutHandlerDeps,
+): StartCheckoutHandler {
+  return async function handleStartCheckout(
+    headers: Headers,
+    payload: StartCheckoutPayload,
+  ): Promise<ApiResponse> {
+    const locale = localeFromHeaders(headers);
 
-  try {
-    const context = resolveContextFromHeaders(headers);
+    try {
+      const context = resolveContextFromHeaders(headers);
 
-    const parsedPayload = parseOrThrowBadRequest(
-      startCheckoutPayloadSchema,
-      payload,
-      "Invalid checkout payload",
-    );
+      const parsedPayload = parseOrThrowBadRequest(
+        startCheckoutPayloadSchema,
+        payload,
+        "Invalid checkout payload",
+      );
 
-    const checkout = await startSubscriptionCheckout({
-      provider: fakePaymentProvider,
-      tenantId: context.tenant.id,
-      planId: parsedPayload.planId,
-      billingPeriod: parsedPayload.billingPeriod,
-      ...(parsedPayload.successUrl !== undefined
-        ? { successUrl: parsedPayload.successUrl }
-        : {}),
-      ...(parsedPayload.cancelUrl !== undefined
-        ? { cancelUrl: parsedPayload.cancelUrl }
-        : {}),
-      ...(parsedPayload.externalReference !== undefined
-        ? { externalReference: parsedPayload.externalReference }
-        : {}),
-    });
+      const checkout = await startSubscriptionCheckout({
+        provider: deps.paymentProvider,
+        tenantId: context.tenant.id,
+        planId: parsedPayload.planId,
+        billingPeriod: parsedPayload.billingPeriod,
+        ...(parsedPayload.successUrl !== undefined
+          ? { successUrl: parsedPayload.successUrl }
+          : {}),
+        ...(parsedPayload.cancelUrl !== undefined
+          ? { cancelUrl: parsedPayload.cancelUrl }
+          : {}),
+        ...(parsedPayload.externalReference !== undefined
+          ? { externalReference: parsedPayload.externalReference }
+          : {}),
+      });
 
-    return {
-      status: 201,
-      body: {
-        message: t("checkout.session_created", locale ? { locale } : undefined),
-        data: checkout,
-        context,
-      },
-    };
-  } catch (error) {
-    return toApiErrorResponse(
-      error,
-      getHeader(headers, "x-trace-id") ?? undefined,
-      locale,
-    );
-  }
+      return {
+        status: 201,
+        body: {
+          message: t("checkout.session_created", locale ? { locale } : undefined),
+          data: checkout,
+          context,
+        },
+      };
+    } catch (error) {
+      return toApiErrorResponse(
+        error,
+        getHeader(headers, "x-trace-id") ?? undefined,
+        locale,
+      );
+    }
+  };
 }
+
+const defaultStartCheckoutHandler = createStartCheckoutHandler({
+  paymentProvider: new DefaultFakePaymentProvider(),
+});
+
+export const handleStartCheckout: StartCheckoutHandler =
+  defaultStartCheckoutHandler;
