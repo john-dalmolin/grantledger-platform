@@ -3,6 +3,10 @@ import {
   processNextInvoiceGenerationJob,
   type InvoiceUseCaseDeps,
 } from "@grantledger/application";
+import {
+  createPostgresInvoiceUseCaseDeps,
+  createPostgresPool,
+} from "@grantledger/infra-postgres";
 
 export interface InvoiceWorkerDeps {
   invoiceUseCases: InvoiceUseCaseDeps;
@@ -13,9 +17,32 @@ export interface RunInvoiceWorkerOnceResult {
   jobId?: string;
 }
 
-const defaultWorkerDeps: InvoiceWorkerDeps = {
-  invoiceUseCases: getSharedInvoiceUseCaseDeps(),
-};
+function resolveWorkerTenantId(): string {
+  const value = process.env.WORKER_TENANT_ID?.trim();
+  if (!value) {
+    throw new Error(
+      "WORKER_TENANT_ID is required when PERSISTENCE_DRIVER=postgres",
+    );
+  }
+  return value;
+}
+
+function createDefaultWorkerDeps(): InvoiceWorkerDeps {
+  if (process.env.PERSISTENCE_DRIVER !== "postgres") {
+    return {
+      invoiceUseCases: getSharedInvoiceUseCaseDeps(),
+    };
+  }
+
+  const pool = createPostgresPool();
+  const tenantId = resolveWorkerTenantId();
+
+  return {
+    invoiceUseCases: createPostgresInvoiceUseCaseDeps(pool, tenantId),
+  };
+}
+
+const defaultWorkerDeps: InvoiceWorkerDeps = createDefaultWorkerDeps();
 
 export async function runInvoiceWorkerOnce(
   deps: InvoiceWorkerDeps = defaultWorkerDeps,

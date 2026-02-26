@@ -1,5 +1,6 @@
 import { toApiErrorResponse } from "../http/errors.js";
 import {
+  BadRequestError,
   cancelSubscriptionAtPeriodEnd,
   cancelSubscriptionNow,
   createInMemoryAsyncIdempotencyStore,
@@ -35,6 +36,7 @@ import type { Clock, IdGenerator } from "@grantledger/shared";
 
 import { getHeader } from "../http/headers.js";
 import type { ApiResponse, Headers } from "../http/types.js";
+import { resolveContextFromHeaders } from "./auth.js";
 
 class InMemorySubscriptionRepository implements SubscriptionRepository {
   private readonly store = new Map<string, Subscription>();
@@ -76,8 +78,18 @@ export function createInMemorySubscriptionUseCaseDeps(): SubscriptionUseCaseDeps
 
 export interface SubscriptionHandlersDeps {
   subscriptionUseCases: SubscriptionUseCaseDeps;
+  subscriptionUseCasesByTenant?: (tenantId: string) => SubscriptionUseCaseDeps;
   clock: Clock;
   idGenerator: IdGenerator;
+}
+
+function resolveSubscriptionUseCases(
+  deps: SubscriptionHandlersDeps,
+  tenantId: string,
+): SubscriptionUseCaseDeps {
+  return deps.subscriptionUseCasesByTenant
+    ? deps.subscriptionUseCasesByTenant(tenantId)
+    : deps.subscriptionUseCases;
 }
 
 function buildCommandContext(
@@ -131,10 +143,22 @@ export function createSubscriptionHandlers(
       payload: unknown,
     ): Promise<ApiResponse> {
       try {
+        const context = resolveContextFromHeaders(headers);
         const parsedPayload = parseOrThrowBadRequest(
           createSubscriptionCommandPayloadSchema,
           payload,
           "Invalid create subscription command payload",
+        );
+
+        if (parsedPayload.tenantId !== context.tenant.id) {
+          throw new BadRequestError(
+            "Payload tenantId must match authenticated tenant context",
+          );
+        }
+
+        const subscriptionUseCases = resolveSubscriptionUseCases(
+          deps,
+          context.tenant.id,
         );
 
         const input: CreateSubscriptionCommandInput = {
@@ -156,7 +180,7 @@ export function createSubscriptionHandlers(
           ),
         };
 
-        const result = await createSubscription(deps.subscriptionUseCases, input);
+        const result = await createSubscription(subscriptionUseCases, input);
         return { status: 201, body: result };
       } catch (error) {
         return toApiErrorResponse(
@@ -171,10 +195,16 @@ export function createSubscriptionHandlers(
       payload: unknown,
     ): Promise<ApiResponse> {
       try {
+        const context = resolveContextFromHeaders(headers);
         const parsedPayload = parseOrThrowBadRequest(
           upgradeSubscriptionCommandPayloadSchema,
           payload,
           "Invalid upgrade subscription command payload",
+        );
+
+        const subscriptionUseCases = resolveSubscriptionUseCases(
+          deps,
+          context.tenant.id,
         );
 
         const input: UpgradeSubscriptionCommandInput = {
@@ -188,7 +218,7 @@ export function createSubscriptionHandlers(
           ),
         };
 
-        const result = await upgradeSubscription(deps.subscriptionUseCases, input);
+        const result = await upgradeSubscription(subscriptionUseCases, input);
         return { status: 200, body: result };
       } catch (error) {
         return toApiErrorResponse(
@@ -203,10 +233,16 @@ export function createSubscriptionHandlers(
       payload: unknown,
     ): Promise<ApiResponse> {
       try {
+        const context = resolveContextFromHeaders(headers);
         const parsedPayload = parseOrThrowBadRequest(
           downgradeSubscriptionCommandPayloadSchema,
           payload,
           "Invalid downgrade subscription command payload",
+        );
+
+        const subscriptionUseCases = resolveSubscriptionUseCases(
+          deps,
+          context.tenant.id,
         );
 
         const input: DowngradeSubscriptionCommandInput = {
@@ -220,7 +256,7 @@ export function createSubscriptionHandlers(
           ),
         };
 
-        const result = await downgradeSubscription(deps.subscriptionUseCases, input);
+        const result = await downgradeSubscription(subscriptionUseCases, input);
         return { status: 200, body: result };
       } catch (error) {
         return toApiErrorResponse(
@@ -235,10 +271,16 @@ export function createSubscriptionHandlers(
       payload: unknown,
     ): Promise<ApiResponse> {
       try {
+        const context = resolveContextFromHeaders(headers);
         const parsedPayload = parseOrThrowBadRequest(
           cancelSubscriptionNowCommandPayloadSchema,
           payload,
           "Invalid cancel subscription now command payload",
+        );
+
+        const subscriptionUseCases = resolveSubscriptionUseCases(
+          deps,
+          context.tenant.id,
         );
 
         const input: CancelSubscriptionNowCommandInput = {
@@ -251,7 +293,7 @@ export function createSubscriptionHandlers(
           ),
         };
 
-        const result = await cancelSubscriptionNow(deps.subscriptionUseCases, input);
+        const result = await cancelSubscriptionNow(subscriptionUseCases, input);
         return { status: 200, body: result };
       } catch (error) {
         return toApiErrorResponse(
@@ -266,10 +308,16 @@ export function createSubscriptionHandlers(
       payload: unknown,
     ): Promise<ApiResponse> {
       try {
+        const context = resolveContextFromHeaders(headers);
         const parsedPayload = parseOrThrowBadRequest(
           cancelSubscriptionAtPeriodEndCommandPayloadSchema,
           payload,
           "Invalid cancel subscription at period end command payload",
+        );
+
+        const subscriptionUseCases = resolveSubscriptionUseCases(
+          deps,
+          context.tenant.id,
         );
 
         const input: CancelSubscriptionAtPeriodEndCommandInput = {
@@ -281,10 +329,7 @@ export function createSubscriptionHandlers(
           ),
         };
 
-        const result = await cancelSubscriptionAtPeriodEnd(
-          deps.subscriptionUseCases,
-          input,
-        );
+        const result = await cancelSubscriptionAtPeriodEnd(subscriptionUseCases, input);
         return { status: 200, body: result };
       } catch (error) {
         return toApiErrorResponse(
