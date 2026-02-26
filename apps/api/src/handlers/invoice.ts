@@ -6,6 +6,10 @@ import {
   type InvoiceUseCaseDeps,
 } from "@grantledger/application";
 import {
+  createPostgresInvoiceUseCaseDeps,
+  createPostgresPool,
+} from "@grantledger/infra-postgres";
+import {
   enqueueInvoiceGenerationPayloadSchema,
   getInvoiceGenerationJobStatusPayloadSchema,
   type EnqueueInvoiceGenerationPayload,
@@ -19,11 +23,43 @@ import { parseOrThrowBadRequest } from "../http/validation.js";
 
 export interface InvoiceHandlersDeps {
   invoiceUseCases: InvoiceUseCaseDeps;
+  invoiceUseCasesByTenant?: (tenantId: string) => InvoiceUseCaseDeps;
 }
 
-const defaultInvoiceHandlerDeps: InvoiceHandlersDeps = {
-  invoiceUseCases: getSharedInvoiceUseCaseDeps(),
-};
+const defaultInvoiceHandlerDeps: InvoiceHandlersDeps = (() => {
+  const base: InvoiceHandlersDeps = {
+    invoiceUseCases: getSharedInvoiceUseCaseDeps(),
+  };
+
+  if (process.env.PERSISTENCE_DRIVER !== "postgres") {
+    return base;
+  }
+
+  const pool = createPostgresPool();
+  const byTenant = new Map<string, InvoiceUseCaseDeps>();
+
+  return {
+    ...base,
+    invoiceUseCasesByTenant: (tenantId: string): InvoiceUseCaseDeps => {
+      const cached = byTenant.get(tenantId);
+      if (cached) {
+        return cached;
+      }
+      const created = createPostgresInvoiceUseCaseDeps(pool, tenantId);
+      byTenant.set(tenantId, created);
+      return created;
+    },
+  };
+})();
+
+function resolveInvoiceUseCases(
+  deps: InvoiceHandlersDeps,
+  tenantId: string,
+): InvoiceUseCaseDeps {
+  return deps.invoiceUseCasesByTenant
+    ? deps.invoiceUseCasesByTenant(tenantId)
+    : deps.invoiceUseCases;
+}
 
 type ParsedEnqueueInvoiceGenerationPayload = ReturnType<
   typeof enqueueInvoiceGenerationPayloadSchema.parse
@@ -70,6 +106,7 @@ export async function handleEnqueueInvoiceGeneration(
 ): Promise<ApiResponse> {
   try {
     const context = resolveContextFromHeaders(headers);
+    const invoiceUseCases = resolveInvoiceUseCases(deps, context.tenant.id);
     const parsedPayload = parseOrThrowBadRequest(
       enqueueInvoiceGenerationPayloadSchema,
       payload,
@@ -83,7 +120,7 @@ export async function handleEnqueueInvoiceGeneration(
     }
 
     const idempotencyKey = getHeader(headers, "idempotency-key");
-    const result = await enqueueInvoiceGeneration(deps.invoiceUseCases, {
+    const result = await enqueueInvoiceGeneration(invoiceUseCases, {
       idempotencyKey,
       payload: normalizeEnqueueInvoiceGenerationPayload(parsedPayload),
     });
@@ -107,6 +144,7 @@ export async function handleGetInvoiceGenerationJobStatus(
 ): Promise<ApiResponse> {
   try {
     const context = resolveContextFromHeaders(headers);
+    const invoiceUseCases = resolveInvoiceUseCases(deps, context.tenant.id);
     const parsedPayload = parseOrThrowBadRequest(
       getInvoiceGenerationJobStatusPayloadSchema,
       payload,
@@ -114,7 +152,7 @@ export async function handleGetInvoiceGenerationJobStatus(
     );
 
     const status = await getInvoiceGenerationJobStatus(
-      deps.invoiceUseCases,
+      invoiceUseCases,
       parsedPayload.jobId,
       context.tenant.id,
     );

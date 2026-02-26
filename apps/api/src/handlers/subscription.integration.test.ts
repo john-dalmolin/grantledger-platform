@@ -7,7 +7,10 @@ import type { Headers } from "../http/types.js";
 describe("subscription handler integration", () => {
   it("returns 400 for invalid payload", async () => {
     const response = await handleUpgradeSubscriptionCommand(
-      {} as Headers,
+      {
+        "x-user-id": "u_1",
+        "x-tenant-id": "t_1",
+      } as Headers,
       {},
     );
 

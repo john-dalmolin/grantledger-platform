@@ -8,7 +8,8 @@
       "@grantledger/shared": ["packages/shared/src"],
       "@grantledger/contracts": ["packages/contracts/src"],
       "@grantledger/domain": ["packages/domain/src"],
-      "@grantledger/application": ["packages/application/src"]
+      "@grantledger/application": ["packages/application/src"],
+      "@grantledger/infra-postgres": ["packages/infra-postgres/src"]
     },
     "strict": true,
     "noUncheckedIndexedAccess": true,

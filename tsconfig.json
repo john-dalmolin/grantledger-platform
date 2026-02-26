@@ -1,12 +1,29 @@
 {
   "files": [],
   "references": [
-    { "path": "./packages/shared" },
-    { "path": "./packages/contracts" },
-    { "path": "./packages/domain" },
-    { "path": "./packages/application" },
-    { "path": "./apps/api" },
-    { "path": "./apps/worker" },
-    { "path": "./apps/admin" }
+    {
+      "path": "./packages/shared"
+    },
+    {
+      "path": "./packages/contracts"
+    },
+    {
+      "path": "./packages/domain"
+    },
+    {
+      "path": "./packages/application"
+    },
+    {
+      "path": "./apps/api"
+    },
+    {
+      "path": "./apps/worker"
+    },
+    {
+      "path": "./apps/admin"
+    },
+    {
+      "path": "./packages/infra-postgres"
+    }
   ]
 }

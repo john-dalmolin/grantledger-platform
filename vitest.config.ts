@@ -9,6 +9,7 @@ export default defineConfig({
       "apps/api/src/**/*.test.ts",
       "apps/worker/src/**/*.test.ts",
       "packages/application/src/**/*.test.ts",
+      "packages/infra-postgres/src/**/*.test.ts",
     ],
     globals: false,
   },

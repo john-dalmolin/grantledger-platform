@@ -2,6 +2,10 @@ import type {
   PaymentProvider,
   SubscriptionUseCaseDeps,
 } from "@grantledger/application";
+import {
+  createPostgresPool,
+  createPostgresSubscriptionUseCaseDeps,
+} from "@grantledger/infra-postgres";
 import type {
   CreateCheckoutSessionInput,
   CreateCheckoutSessionResult,
@@ -22,6 +26,7 @@ import {
   createSubscriptionHandlers,
   type SubscriptionHandlers,
 } from "../handlers/subscription.js";
+import type { Pool } from "pg";
 
 class FakePaymentProvider implements PaymentProvider {
   public readonly name = "fake" as const;
@@ -52,10 +57,22 @@ export interface ApiCompositionRootDeps {
   idGenerator?: IdGenerator;
   paymentProvider?: PaymentProvider;
   subscriptionUseCases?: SubscriptionUseCaseDeps;
+  subscriptionUseCasesByTenant?: (tenantId: string) => SubscriptionUseCaseDeps;
+  persistenceDriver?: "memory" | "postgres";
+  postgresPool?: Pool;
 }
 
 export interface ApiCompositionRoot extends SubscriptionHandlers {
   handleStartCheckout: StartCheckoutHandler;
+}
+
+function resolvePersistenceDriver(
+  explicit?: "memory" | "postgres",
+): "memory" | "postgres" {
+  if (explicit) {
+    return explicit;
+  }
+  return process.env.PERSISTENCE_DRIVER === "postgres" ? "postgres" : "memory";
 }
 
 export function createApiCompositionRoot(
@@ -65,12 +82,42 @@ export function createApiCompositionRoot(
   const idGenerator = deps.idGenerator ?? new CryptoIdGenerator();
   const paymentProvider =
     deps.paymentProvider ?? new FakePaymentProvider(idGenerator, clock);
+  const persistenceDriver = resolvePersistenceDriver(deps.persistenceDriver);
 
-  const subscriptionUseCases =
+  const inMemorySubscriptionUseCases =
     deps.subscriptionUseCases ?? createInMemorySubscriptionUseCaseDeps();
 
+  const pool =
+    persistenceDriver === "postgres"
+      ? deps.postgresPool ?? createPostgresPool()
+      : null;
+
+  const postgresUseCasesByTenant = new Map<string, SubscriptionUseCaseDeps>();
+
+  const subscriptionUseCasesByTenant = deps.subscriptionUseCasesByTenant
+    ? deps.subscriptionUseCasesByTenant
+    : deps.subscriptionUseCases
+      ? null
+      : (tenantId: string): SubscriptionUseCaseDeps => {
+          if (persistenceDriver !== "postgres" || !pool) {
+            return inMemorySubscriptionUseCases;
+          }
+
+          const cached = postgresUseCasesByTenant.get(tenantId);
+          if (cached) {
+            return cached;
+          }
+
+          const created = createPostgresSubscriptionUseCaseDeps(pool, tenantId);
+          postgresUseCasesByTenant.set(tenantId, created);
+          return created;
+        };
+
   const subscriptionHandlers = createSubscriptionHandlers({
-    subscriptionUseCases,
+    subscriptionUseCases: inMemorySubscriptionUseCases,
+    ...(subscriptionUseCasesByTenant
+      ? { subscriptionUseCasesByTenant }
+      : {}),
     clock,
     idGenerator,
   });
