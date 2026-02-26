@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { handleStartCheckout } from "./checkout.js";
+import { createApiCompositionRoot } from "../bootstrap/composition-root.js";
 import type { Headers } from "../http/types.js";
+
+const { handleStartCheckout } = createApiCompositionRoot();
 
 function asHeaders(value: Record<string, string>): Headers {
   return value as unknown as Headers;

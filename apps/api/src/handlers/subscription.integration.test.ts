@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { handleUpgradeSubscriptionCommand } from "./subscription.js";
+import { createApiCompositionRoot } from "../bootstrap/composition-root.js";
+
+const { handleUpgradeSubscriptionCommand } = createApiCompositionRoot();
 import type { Headers } from "../http/types.js";
 
 describe("subscription handler integration", () => {
