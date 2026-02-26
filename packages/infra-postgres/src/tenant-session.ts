@@ -8,7 +8,7 @@ export async function withTenantSession<T>(
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    await client.query("SET LOCAL app.tenant_id = $1", [tenantId]);
+    await client.query("Select set_config('app.tenant_id', $1, true)", [tenantId]);
     const result = await work(client);
     await client.query("COMMIT");
     return result;
