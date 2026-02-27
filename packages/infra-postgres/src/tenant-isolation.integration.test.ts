@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
@@ -32,7 +33,7 @@ describePg("postgres tenant isolation", () => {
   it("isolates subscription reads across tenants via RLS", async () => {
     const tenantA = "t_rls_a";
     const tenantB = "t_rls_b";
-    const subscriptionId = "sub_rls_1";
+    const subscriptionId = `sub_rls_${randomUUID()}`;
 
     const repoA = createPostgresSubscriptionRepository(pool, tenantA);
     const repoB = createPostgresSubscriptionRepository(pool, tenantB);
@@ -65,7 +66,7 @@ describePg("postgres tenant isolation", () => {
     const tenantA = "t_rls_a";
     const tenantB = "t_rls_b";
     const scope = "invoice.enqueue";
-    const key = "idem_rls_1";
+    const key = `idem_rls_${randomUUID()}`;
 
     const storeA = createPostgresAsyncIdempotencyStore<{ ok: boolean }>(
       pool,

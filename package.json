@@ -13,7 +13,7 @@
     "test:watch": "vitest",
     "quality:gate": "npm run lint && npm run typecheck && npm run build && npm run test",
     "test:workspaces": "npm run --workspaces --if-present test",
-    "test:pg": "RUN_PG_TESTS=1 vitest run packages/infra-postgres/src/**/*.test.ts",
+    "test:pg": "RUN_PG_TESTS=1 vitest run packages/infra-postgres/src",
     "db:up": "docker compose up -d postgres",
     "db:down": "docker compose down",
     "db:migrate": "node ./scripts/db-migrate.mjs"

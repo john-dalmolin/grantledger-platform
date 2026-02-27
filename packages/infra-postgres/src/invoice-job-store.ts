@@ -1,6 +1,12 @@
-import type { InvoiceGenerationJob, InvoiceJobStore } from "@grantledger/application";
+import {
+  InvoiceJobLeaseError,
+  type InvoiceGenerationJob,
+  type InvoiceJobClaimInput,
+  type InvoiceJobLease,
+  type InvoiceJobStore,
+} from "@grantledger/application";
 import type { GenerateInvoiceForCycleInput } from "@grantledger/contracts";
-import type { Pool } from "pg";
+import type { Pool, QueryResult } from "pg";
 import { withTenantSession } from "./tenant-session.js";
 
 type InvoiceJobRow = {
@@ -17,6 +23,9 @@ type InvoiceJobRow = {
   dead_lettered_at: Date | string | null;
   replay_of_job_id: string | null;
   replay_reason: string | null;
+  lease_owner: string | null;
+  lease_token: string | null;
+  lease_expires_at: Date | string | null;
   created_at: Date | string;
   updated_at: Date | string;
 };
@@ -46,7 +55,20 @@ function mapRow(row: InvoiceJobRow): InvoiceGenerationJob {
     ...(row.dead_lettered_at !== null ? { deadLetteredAt: toIso(row.dead_lettered_at) } : {}),
     ...(row.replay_of_job_id !== null ? { replayOfJobId: row.replay_of_job_id } : {}),
     ...(row.replay_reason !== null ? { replayReason: row.replay_reason } : {}),
+    ...(row.lease_owner !== null ? { leaseOwner: row.lease_owner } : {}),
+    ...(row.lease_token !== null ? { leaseToken: row.lease_token } : {}),
+    ...(row.lease_expires_at !== null
+      ? { leaseExpiresAt: toIso(row.lease_expires_at) }
+      : {}),
   };
+}
+
+function assertLeaseGuardUpdate(result: QueryResult, jobId: string): void {
+  if (result.rowCount !== 1) {
+    throw new InvoiceJobLeaseError(
+      `Invoice job lease is no longer owned by this worker for job ${jobId}`,
+    );
+  }
 }
 
 export function createPostgresInvoiceJobStore(
@@ -59,10 +81,12 @@ export function createPostgresInvoiceJobStore(
         await client.query(
           `INSERT INTO invoice_jobs
             (id, tenant_id, status, cycle_key, payload, invoice_id, reason, attempt_count, max_attempts,
-             next_attempt_at, last_error, dead_lettered_at, replay_of_job_id, replay_reason, created_at, updated_at)
+             next_attempt_at, last_error, dead_lettered_at, replay_of_job_id, replay_reason,
+             lease_owner, lease_token, lease_expires_at, created_at, updated_at)
            VALUES
             ($1, current_setting('app.tenant_id', true), $2, $3, $4::jsonb, $5, $6, $7, $8,
-             $9::timestamptz, $10, $11::timestamptz, $12, $13, $14::timestamptz, $15::timestamptz)`,
+             $9::timestamptz, $10, $11::timestamptz, $12, $13,
+             $14, $15, $16::timestamptz, $17::timestamptz, $18::timestamptz)`,
           [
             job.id,
             job.status,
@@ -77,6 +101,9 @@ export function createPostgresInvoiceJobStore(
             job.deadLetteredAt ?? null,
             job.replayOfJobId ?? null,
             job.replayReason ?? null,
+            job.leaseOwner ?? null,
+            job.leaseToken ?? null,
+            job.leaseExpiresAt ?? null,
             job.createdAt,
             job.updatedAt,
           ],
@@ -84,30 +111,66 @@ export function createPostgresInvoiceJobStore(
       });
     },
 
-    async claimNext(): Promise<InvoiceGenerationJob | null> {
+    async claimNext(input: InvoiceJobClaimInput): Promise<InvoiceGenerationJob | null> {
       return withTenantSession(pool, tenantId, async (client) => {
         const result = await client.query<InvoiceJobRow>(
           `WITH candidate AS (
              SELECT id
                FROM invoice_jobs
-              WHERE status = 'queued'
-                AND next_attempt_at <= now()
-              ORDER BY created_at
+              WHERE (
+                      status = 'queued'
+                  AND next_attempt_at <= now()
+                    )
+                 OR (
+                      status = 'processing'
+                  AND lease_expires_at IS NOT NULL
+                  AND lease_expires_at <= now()
+                    )
+              ORDER BY
+                CASE WHEN status = 'queued' THEN 0 ELSE 1 END,
+                next_attempt_at,
+                created_at
               LIMIT 1
               FOR UPDATE SKIP LOCKED
            )
            UPDATE invoice_jobs jobs
               SET status = 'processing',
+                  lease_owner = $1,
+                  lease_token = $2,
+                  lease_expires_at = now() + ($3::int * interval '1 second'),
                   updated_at = now()
              FROM candidate
             WHERE jobs.id = candidate.id
            RETURNING jobs.id, jobs.status, jobs.cycle_key, jobs.payload, jobs.invoice_id, jobs.reason,
                      jobs.attempt_count, jobs.max_attempts, jobs.next_attempt_at, jobs.last_error,
-                     jobs.dead_lettered_at, jobs.replay_of_job_id, jobs.replay_reason, jobs.created_at, jobs.updated_at`,
+                     jobs.dead_lettered_at, jobs.replay_of_job_id, jobs.replay_reason,
+                     jobs.lease_owner, jobs.lease_token, jobs.lease_expires_at,
+                     jobs.created_at, jobs.updated_at`,
+          [input.workerId, input.leaseToken, input.leaseSeconds],
         );
 
         const row = firstRow(result.rows);
         return row ? mapRow(row) : null;
+      });
+    },
+
+    async renewLease(
+      jobId: string,
+      lease: InvoiceJobLease,
+      leaseSeconds: number,
+    ): Promise<void> {
+      await withTenantSession(pool, tenantId, async (client) => {
+        const result = await client.query(
+          `UPDATE invoice_jobs
+              SET lease_expires_at = now() + ($4::int * interval '1 second'),
+                  updated_at = now()
+            WHERE id = $1
+              AND status = 'processing'
+              AND lease_owner = $2
+              AND lease_token = $3`,
+          [jobId, lease.workerId, lease.leaseToken, leaseSeconds],
+        );
+        assertLeaseGuardUpdate(result, jobId);
       });
     },
 
@@ -116,7 +179,7 @@ export function createPostgresInvoiceJobStore(
         const result = await client.query<InvoiceJobRow>(
           `SELECT id, status, cycle_key, payload, invoice_id, reason, attempt_count, max_attempts,
                   next_attempt_at, last_error, dead_lettered_at, replay_of_job_id, replay_reason,
-                  created_at, updated_at
+                  lease_owner, lease_token, lease_expires_at, created_at, updated_at
              FROM invoice_jobs
             WHERE id = $1
             LIMIT 1`,
@@ -128,16 +191,27 @@ export function createPostgresInvoiceJobStore(
       });
     },
 
-    async markCompleted(jobId: string, invoiceId: string): Promise<void> {
+    async markCompleted(
+      jobId: string,
+      invoiceId: string,
+      lease: InvoiceJobLease,
+    ): Promise<void> {
       await withTenantSession(pool, tenantId, async (client) => {
-        await client.query(
+        const result = await client.query(
           `UPDATE invoice_jobs
               SET status = 'completed',
                   invoice_id = $2,
+                  lease_owner = NULL,
+                  lease_token = NULL,
+                  lease_expires_at = NULL,
                   updated_at = now()
-            WHERE id = $1`,
-          [jobId, invoiceId],
+            WHERE id = $1
+              AND status = 'processing'
+              AND lease_owner = $3
+              AND lease_token = $4`,
+          [jobId, invoiceId, lease.workerId, lease.leaseToken],
         );
+        assertLeaseGuardUpdate(result, jobId);
       });
     },
 
@@ -146,34 +220,60 @@ export function createPostgresInvoiceJobStore(
       reason: string,
       nextAttemptAt: string,
       attemptCount: number,
+      lease: InvoiceJobLease,
     ): Promise<void> {
       await withTenantSession(pool, tenantId, async (client) => {
-        await client.query(
+        const result = await client.query(
           `UPDATE invoice_jobs
               SET status = 'queued',
                   reason = $2,
                   last_error = $2,
                   next_attempt_at = $3::timestamptz,
                   attempt_count = $4,
+                  lease_owner = NULL,
+                  lease_token = NULL,
+                  lease_expires_at = NULL,
                   updated_at = now()
-            WHERE id = $1`,
-          [jobId, reason, nextAttemptAt, attemptCount],
+            WHERE id = $1
+              AND status = 'processing'
+              AND lease_owner = $5
+              AND lease_token = $6`,
+          [
+            jobId,
+            reason,
+            nextAttemptAt,
+            attemptCount,
+            lease.workerId,
+            lease.leaseToken,
+          ],
         );
+        assertLeaseGuardUpdate(result, jobId);
       });
     },
 
-    async markDeadLetter(jobId: string, reason: string): Promise<void> {
+    async markDeadLetter(
+      jobId: string,
+      reason: string,
+      lease: InvoiceJobLease,
+    ): Promise<void> {
       await withTenantSession(pool, tenantId, async (client) => {
-        await client.query(
+        const result = await client.query(
           `UPDATE invoice_jobs
               SET status = 'failed',
                   reason = $2,
                   last_error = $2,
                   dead_lettered_at = now(),
+                  lease_owner = NULL,
+                  lease_token = NULL,
+                  lease_expires_at = NULL,
                   updated_at = now()
-            WHERE id = $1`,
-          [jobId, reason],
+            WHERE id = $1
+              AND status = 'processing'
+              AND lease_owner = $3
+              AND lease_token = $4`,
+          [jobId, reason, lease.workerId, lease.leaseToken],
         );
+        assertLeaseGuardUpdate(result, jobId);
       });
     },
   };

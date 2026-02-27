@@ -53,21 +53,48 @@ export interface InvoiceGenerationJob {
   deadLetteredAt?: string;
   replayOfJobId?: string;
   replayReason?: string;
+  leaseOwner?: string;
+  leaseToken?: string;
+  leaseExpiresAt?: string;
+}
+
+export interface InvoiceJobLease {
+  workerId: string;
+  leaseToken: string;
+}
+
+export interface InvoiceJobClaimInput extends InvoiceJobLease {
+  leaseSeconds: number;
 }
 
 export interface InvoiceJobStore {
   enqueue(job: InvoiceGenerationJob): Promise<void>;
-  claimNext(): Promise<InvoiceGenerationJob | null>;
+  claimNext(input: InvoiceJobClaimInput): Promise<InvoiceGenerationJob | null>;
+  renewLease(
+    jobId: string,
+    lease: InvoiceJobLease,
+    leaseSeconds: number,
+  ): Promise<void>;
   get(jobId: string): Promise<InvoiceGenerationJob | null>;
-  markCompleted(jobId: string, invoiceId: string): Promise<void>;
+  markCompleted(
+    jobId: string,
+    invoiceId: string,
+    lease: InvoiceJobLease,
+  ): Promise<void>;
   markRetry(
     jobId: string,
     reason: string,
     nextAttemptAt: string,
     attemptCount: number,
+    lease: InvoiceJobLease,
   ): Promise<void>;
-  markDeadLetter(jobId: string, reason: string): Promise<void>;
+  markDeadLetter(
+    jobId: string,
+    reason: string,
+    lease: InvoiceJobLease,
+  ): Promise<void>;
 }
+
 
 export interface InvoiceJobObserver {
   onJobClaimed?(job: InvoiceGenerationJob): Promise<void> | void;
@@ -98,6 +125,7 @@ export type ReplayInvoiceGenerationJobResult =
   | { status: "skipped_already_completed"; jobId: string; invoiceId: string };
 
 const DEFAULT_MAX_ATTEMPTS = 3;
+const DEFAULT_LEASE_SECONDS = 30;
 const noopInvoiceJobObserver: InvoiceJobObserver = {};
 
 function observerOf(
@@ -146,6 +174,11 @@ export interface EnqueueInvoiceGenerationResult extends EnqueueInvoiceGeneration
   replayed: boolean;
 }
 
+export interface ProcessNextInvoiceGenerationJobInput {
+  lease?: InvoiceJobClaimInput;
+  heartbeatSeconds?: number;
+}
+
 export type ProcessNextInvoiceGenerationJobResult =
   | { status: "no_job" }
   | { status: "processed"; jobId: string; invoiceId: string }
@@ -165,6 +198,12 @@ export class InvoiceGenerationJobNotFoundError extends NotFoundError {
 
 export class InvoiceJobReplayNotAllowedError extends ConflictError {
   constructor(message = "Only failed jobs can be replayed") {
+    super(message);
+  }
+}
+
+export class InvoiceJobLeaseError extends ConflictError {
+  constructor(message = "Invoice job lease is no longer owned by this worker") {
     super(message);
   }
 }
@@ -207,6 +246,20 @@ function cloneJob(job: InvoiceGenerationJob): InvoiceGenerationJob {
   };
 }
 
+function stripLeaseMetadata(job: InvoiceGenerationJob): InvoiceGenerationJob {
+  const {
+    leaseOwner: _leaseOwner,
+    leaseToken: _leaseToken,
+    leaseExpiresAt: _leaseExpiresAt,
+    ...withoutLease
+  } = job;
+
+  void _leaseOwner;
+  void _leaseToken;
+  void _leaseExpiresAt;
+  return withoutLease;
+}
+
 function requireJob(
   store: Map<string, InvoiceGenerationJob>,
   jobId: string,
@@ -244,27 +297,47 @@ export function createInMemoryInvoiceJobStore(
 ): InvoiceJobStore {
   const jobs = new Map<string, InvoiceGenerationJob>();
 
+  function assertLeaseOwnership(
+    current: InvoiceGenerationJob,
+    lease: InvoiceJobLease,
+  ): void {
+    if (
+      current.leaseOwner !== lease.workerId ||
+      current.leaseToken !== lease.leaseToken
+    ) {
+      throw new InvoiceJobLeaseError();
+    }
+  }
+
   return {
     async enqueue(job: InvoiceGenerationJob): Promise<void> {
       jobs.set(job.id, cloneJob(job));
     },
-    async claimNext(): Promise<InvoiceGenerationJob | null> {
+    async claimNext(input: InvoiceJobClaimInput): Promise<InvoiceGenerationJob | null> {
       const nowIso = now();
       const nowMillis = parseIsoToEpochMillis(nowIso);
 
       for (const [jobId, candidate] of jobs.entries()) {
-        if (candidate.status !== "queued") {
-          continue;
-        }
+        const isQueuedReady = (() => {
+          if (candidate.status !== "queued") return false;
+          try {
+            return parseIsoToEpochMillis(candidate.nextAttemptAt) <= nowMillis;
+          } catch {
+            return false;
+          }
+        })();
 
-        let nextAttemptMillis: number;
-        try {
-          nextAttemptMillis = parseIsoToEpochMillis(candidate.nextAttemptAt);
-        } catch {
-          continue;
-        }
+        const isExpiredProcessing = (() => {
+          if (candidate.status !== "processing") return false;
+          if (!candidate.leaseExpiresAt) return false;
+          try {
+            return parseIsoToEpochMillis(candidate.leaseExpiresAt) <= nowMillis;
+          } catch {
+            return false;
+          }
+        })();
 
-        if (nextAttemptMillis > nowMillis) {
+        if (!isQueuedReady && !isExpiredProcessing) {
           continue;
         }
 
@@ -272,6 +345,9 @@ export function createInMemoryInvoiceJobStore(
           ...candidate,
           status: "processing",
           updatedAt: nowIso,
+          leaseOwner: input.workerId,
+          leaseToken: input.leaseToken,
+          leaseExpiresAt: addSecondsToIso(nowIso, input.leaseSeconds),
         };
 
         jobs.set(jobId, claimed);
@@ -281,14 +357,35 @@ export function createInMemoryInvoiceJobStore(
       return null;
     },
 
+    async renewLease(
+      jobId: string,
+      lease: InvoiceJobLease,
+      leaseSeconds: number,
+    ): Promise<void> {
+      const current = requireJob(jobs, jobId);
+      assertLeaseOwnership(current, lease);
+
+      const nowIso = now();
+      jobs.set(jobId, {
+        ...current,
+        leaseExpiresAt: addSecondsToIso(nowIso, leaseSeconds),
+        updatedAt: nowIso,
+      });
+    },
+
     async get(jobId: string): Promise<InvoiceGenerationJob | null> {
       const job = jobs.get(jobId);
       return job ? cloneJob(job) : null;
     },
-    async markCompleted(jobId: string, invoiceId: string): Promise<void> {
+    async markCompleted(
+      jobId: string,
+      invoiceId: string,
+      lease: InvoiceJobLease,
+    ): Promise<void> {
       const current = requireJob(jobs, jobId);
+      assertLeaseOwnership(current, lease);
       jobs.set(jobId, {
-        ...current,
+        ...stripLeaseMetadata(current),
         status: "completed",
         updatedAt: now(),
         invoiceId,
@@ -300,10 +397,12 @@ export function createInMemoryInvoiceJobStore(
       reason: string,
       nextAttemptAt: string,
       attemptCount: number,
+      lease: InvoiceJobLease,
     ): Promise<void> {
       const current = requireJob(jobs, jobId);
+      assertLeaseOwnership(current, lease);
       jobs.set(jobId, {
-        ...current,
+        ...stripLeaseMetadata(current),
         status: "queued",
         reason,
         lastError: reason,
@@ -312,11 +411,16 @@ export function createInMemoryInvoiceJobStore(
         updatedAt: now(),
       });
     },
-    async markDeadLetter(jobId: string, reason: string): Promise<void> {
+    async markDeadLetter(
+      jobId: string,
+      reason: string,
+      lease: InvoiceJobLease,
+    ): Promise<void> {
       const current = requireJob(jobs, jobId);
+      assertLeaseOwnership(current, lease);
       const deadLetteredAt = now();
       jobs.set(jobId, {
-        ...current,
+        ...stripLeaseMetadata(current),
         status: "failed",
         reason,
         lastError: reason,
@@ -326,6 +430,7 @@ export function createInMemoryInvoiceJobStore(
     },
   };
 }
+
 
 export function createDefaultInvoiceUseCaseDeps(): InvoiceUseCaseDeps {
   return {
@@ -421,8 +526,20 @@ function buildInvoice(
 
 export async function processNextInvoiceGenerationJob(
   deps: InvoiceUseCaseDeps,
+  input?: ProcessNextInvoiceGenerationJobInput,
 ): Promise<ProcessNextInvoiceGenerationJobResult> {
-  const job = await deps.invoiceJobStore.claimNext();
+  const lease = input?.lease ?? {
+    workerId: "worker-default",
+    leaseToken: resolveId(deps),
+    leaseSeconds: DEFAULT_LEASE_SECONDS,
+  };
+  const heartbeatSeconds = input?.heartbeatSeconds;
+  const leaseRef: InvoiceJobLease = {
+    workerId: lease.workerId,
+    leaseToken: lease.leaseToken,
+  };
+
+  const job = await deps.invoiceJobStore.claimNext(lease);
   const observer = observerOf(deps);
 
   if (!job) {
@@ -430,6 +547,30 @@ export async function processNextInvoiceGenerationJob(
   }
 
   await notifyObserver("job_claimed", () => observer.onJobClaimed?.(job));
+  let leaseRenewalError: Error | null = null;
+  let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+
+  if (
+    heartbeatSeconds !== undefined &&
+    Number.isFinite(heartbeatSeconds) &&
+    heartbeatSeconds > 0
+  ) {
+    heartbeatTimer = setInterval(() => {
+      void deps.invoiceJobStore
+        .renewLease(job.id, leaseRef, lease.leaseSeconds)
+        .catch((error) => {
+          if (leaseRenewalError !== null) {
+            return;
+          }
+
+          leaseRenewalError =
+            error instanceof Error
+              ? error
+              : new Error("Unexpected lease renewal failure");
+        });
+    }, heartbeatSeconds * 1000);
+    heartbeatTimer.unref?.();
+  }
 
   try {
     const { response } = await executeIdempotent({
@@ -471,7 +612,11 @@ export async function processNextInvoiceGenerationJob(
       },
     });
 
-    await deps.invoiceJobStore.markCompleted(job.id, response.invoiceId);
+    if (leaseRenewalError) {
+      throw leaseRenewalError;
+    }
+
+    await deps.invoiceJobStore.markCompleted(job.id, response.invoiceId, leaseRef);
     await notifyObserver("job_completed", () =>
       observer.onJobCompleted?.(job, response.invoiceId),
     );
@@ -482,6 +627,14 @@ export async function processNextInvoiceGenerationJob(
       invoiceId: response.invoiceId,
     };
   } catch (error) {
+    if (error instanceof InvoiceJobLeaseError) {
+      return {
+        status: "failed",
+        jobId: job.id,
+        reason: error.message,
+      };
+    }
+
     const reason =
       error instanceof Error
         ? error.message
@@ -494,12 +647,24 @@ export async function processNextInvoiceGenerationJob(
       const delaySeconds = computeRetryDelaySeconds(nextAttempt);
       const nextAttemptAt = computeNextAttemptAt(nowIso, delaySeconds);
 
-      await deps.invoiceJobStore.markRetry(
-        job.id,
-        reason,
-        nextAttemptAt,
-        nextAttempt,
-      );
+      try {
+        await deps.invoiceJobStore.markRetry(
+          job.id,
+          reason,
+          nextAttemptAt,
+          nextAttempt,
+          leaseRef,
+        );
+      } catch (markRetryError) {
+        if (markRetryError instanceof InvoiceJobLeaseError) {
+          return {
+            status: "failed",
+            jobId: job.id,
+            reason: markRetryError.message,
+          };
+        }
+        throw markRetryError;
+      }
 
       await notifyObserver("job_retry_scheduled", () =>
         observer.onJobRetryScheduled?.(job, reason, nextAttemptAt, nextAttempt),
@@ -513,7 +678,18 @@ export async function processNextInvoiceGenerationJob(
       };
     }
 
-    await deps.invoiceJobStore.markDeadLetter(job.id, reason);
+    try {
+      await deps.invoiceJobStore.markDeadLetter(job.id, reason, leaseRef);
+    } catch (markDeadLetterError) {
+      if (markDeadLetterError instanceof InvoiceJobLeaseError) {
+        return {
+          status: "failed",
+          jobId: job.id,
+          reason: markDeadLetterError.message,
+        };
+      }
+      throw markDeadLetterError;
+    }
     await notifyObserver("job_dead_lettered", () =>
       observer.onJobDeadLettered?.(job, reason),
     );
@@ -523,8 +699,13 @@ export async function processNextInvoiceGenerationJob(
       jobId: job.id,
       reason,
     };
+  } finally {
+    if (heartbeatTimer) {
+      clearInterval(heartbeatTimer);
+    }
   }
 }
+
 
 export async function replayInvoiceGenerationJob(
   deps: InvoiceUseCaseDeps,
@@ -561,8 +742,18 @@ export async function replayInvoiceGenerationJob(
       ? input.reason.trim()
       : "manual replay";
 
+  const {
+    reason: _sourceReason,
+    lastError: _sourceLastError,
+    deadLetteredAt: _sourceDeadLetteredAt,
+    ...replayBase
+  } = stripLeaseMetadata(sourceJob);
+  void _sourceReason;
+  void _sourceLastError;
+  void _sourceDeadLetteredAt;
+
   const replayJob: InvoiceGenerationJob = {
-    ...sourceJob,
+    ...replayBase,
     id: resolveId(deps),
     status: "queued",
     cycleKey,

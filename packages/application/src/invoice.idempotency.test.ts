@@ -20,6 +20,9 @@ import {
   type InvoiceJobStore,
   type InvoiceRepository,
   type InvoiceUseCaseDeps,
+  type InvoiceJobClaimInput,
+  type InvoiceJobLease,
+
 } from "./invoice.js";
 
 class NoopInvoiceAuditLogger implements InvoiceAuditLogger {
@@ -95,7 +98,7 @@ function createBlockingJobStore(base: InvoiceJobStore): {
     startedResolve = resolve;
   });
 
-  const store: InvoiceJobStore = {
+const store: InvoiceJobStore = {
     enqueue: async (job: InvoiceGenerationJob) => {
       if (firstCall) {
         firstCall = false;
@@ -104,18 +107,21 @@ function createBlockingJobStore(base: InvoiceJobStore): {
       }
       await base.enqueue(job);
     },
-    claimNext: () => base.claimNext(),
+    claimNext: (input: InvoiceJobClaimInput) => base.claimNext(input),
+    renewLease: (jobId: string, lease: InvoiceJobLease, leaseSeconds: number) =>
+      base.renewLease(jobId, lease, leaseSeconds),
     get: (jobId: string) => base.get(jobId),
-    markCompleted: (jobId: string, invoiceId: string) =>
-      base.markCompleted(jobId, invoiceId),
+    markCompleted: (jobId: string, invoiceId: string, lease: InvoiceJobLease) =>
+      base.markCompleted(jobId, invoiceId, lease),
     markRetry: (
       jobId: string,
       reason: string,
       nextAttemptAt: string,
       attemptCount: number,
-    ) => base.markRetry(jobId, reason, nextAttemptAt, attemptCount),
-    markDeadLetter: (jobId: string, reason: string) =>
-      base.markDeadLetter(jobId, reason),
+      lease: InvoiceJobLease,
+    ) => base.markRetry(jobId, reason, nextAttemptAt, attemptCount, lease),
+    markDeadLetter: (jobId: string, reason: string, lease: InvoiceJobLease) =>
+      base.markDeadLetter(jobId, reason, lease),
   };
 
   return { store, release, started };
@@ -132,20 +138,24 @@ function createFailingOnceEnqueueStore(base: InvoiceJobStore): InvoiceJobStore {
       }
       await base.enqueue(job);
     },
-    claimNext: () => base.claimNext(),
+    claimNext: (input: InvoiceJobClaimInput) => base.claimNext(input),
+    renewLease: (jobId: string, lease: InvoiceJobLease, leaseSeconds: number) =>
+      base.renewLease(jobId, lease, leaseSeconds),
     get: (jobId: string) => base.get(jobId),
-    markCompleted: (jobId: string, invoiceId: string) =>
-      base.markCompleted(jobId, invoiceId),
+    markCompleted: (jobId: string, invoiceId: string, lease: InvoiceJobLease) =>
+      base.markCompleted(jobId, invoiceId, lease),
     markRetry: (
       jobId: string,
       reason: string,
       nextAttemptAt: string,
       attemptCount: number,
-    ) => base.markRetry(jobId, reason, nextAttemptAt, attemptCount),
-    markDeadLetter: (jobId: string, reason: string) =>
-      base.markDeadLetter(jobId, reason),
+      lease: InvoiceJobLease,
+    ) => base.markRetry(jobId, reason, nextAttemptAt, attemptCount, lease),
+    markDeadLetter: (jobId: string, reason: string, lease: InvoiceJobLease) =>
+      base.markDeadLetter(jobId, reason, lease),
   };
 }
+
 
 describe("invoice enqueue idempotency", () => {
   it("enqueues first request and returns queued job", async () => {
