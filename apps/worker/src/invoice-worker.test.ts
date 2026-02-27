@@ -14,7 +14,10 @@ import {
   type InvoiceRepository,
   type InvoiceUseCaseDeps,
 } from "@grantledger/application";
-import { runInvoiceWorkerOnce } from "./invoice-worker.js";
+import {
+  resolveInvoiceWorkerRuntimeConfig,
+  runInvoiceWorkerOnce,
+} from "./invoice-worker.js";
 
 class NoopInvoiceAuditLogger implements InvoiceAuditLogger {
   async log(_event: InvoiceAuditEvent): Promise<void> {
@@ -227,4 +230,24 @@ it("continues processing when observer throws", async () => {
   expect(result).toEqual({ status: "processed", jobId });
   expect(status.status).toBe("completed");
   expect(repository.saveCount).toBe(1);
+});
+
+describe("worker runtime config", () => {
+  it("uses defaults when env vars are missing", () => {
+    const config = resolveInvoiceWorkerRuntimeConfig({});
+
+    expect(config.leaseSeconds).toBe(30);
+    expect(config.heartbeatSeconds).toBe(10);
+    expect(config.workerId.length).toBeGreaterThan(0);
+  });
+
+  it("throws when heartbeat is greater than or equal to lease", () => {
+    expect(() =>
+      resolveInvoiceWorkerRuntimeConfig({
+        WORKER_ID: "worker-test",
+        JOB_LEASE_SECONDS: "10",
+        JOB_HEARTBEAT_SECONDS: "10",
+      }),
+    ).toThrow("JOB_HEARTBEAT_SECONDS must be lower than JOB_LEASE_SECONDS");
+  });
 });
