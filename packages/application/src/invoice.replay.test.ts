@@ -217,9 +217,17 @@ describe("invoice replay controls", () => {
       throw new Error("Expected source job to exist");
     }
 
+    const lease = { workerId: "test-worker", leaseToken: "lease-replay-1" };
+    const claimed = await deps.invoiceJobStore.claimNext({
+      ...lease,
+      leaseSeconds: 30,
+    });
+    expect(claimed?.id).toBe(sourceJobId);
+
     await deps.invoiceJobStore.markDeadLetter(
       sourceJobId,
       "forced failure for replay path",
+      lease,
     );
 
     const seededInvoice = buildSeedInvoice("inv_seed_1", sourceJob.input);

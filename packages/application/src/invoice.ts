@@ -53,21 +53,49 @@ export interface InvoiceGenerationJob {
   deadLetteredAt?: string;
   replayOfJobId?: string;
   replayReason?: string;
+  leaseOwner?: string | undefined;
+  leaseToken?: string | undefined;
+  leaseExpiresAt?: string | undefined;
+
+}
+
+export interface InvoiceJobLease {
+  workerId: string;
+  leaseToken: string;
+}
+
+export interface InvoiceJobClaimInput extends InvoiceJobLease {
+  leaseSeconds: number;
 }
 
 export interface InvoiceJobStore {
   enqueue(job: InvoiceGenerationJob): Promise<void>;
-  claimNext(): Promise<InvoiceGenerationJob | null>;
+  claimNext(input: InvoiceJobClaimInput): Promise<InvoiceGenerationJob | null>;
+  renewLease(
+    jobId: string,
+    lease: InvoiceJobLease,
+    leaseSeconds: number,
+  ): Promise<void>;
   get(jobId: string): Promise<InvoiceGenerationJob | null>;
-  markCompleted(jobId: string, invoiceId: string): Promise<void>;
+  markCompleted(
+    jobId: string,
+    invoiceId: string,
+    lease: InvoiceJobLease,
+  ): Promise<void>;
   markRetry(
     jobId: string,
     reason: string,
     nextAttemptAt: string,
     attemptCount: number,
+    lease: InvoiceJobLease,
   ): Promise<void>;
-  markDeadLetter(jobId: string, reason: string): Promise<void>;
+  markDeadLetter(
+    jobId: string,
+    reason: string,
+    lease: InvoiceJobLease,
+  ): Promise<void>;
 }
+
 
 export interface InvoiceJobObserver {
   onJobClaimed?(job: InvoiceGenerationJob): Promise<void> | void;
@@ -169,6 +197,12 @@ export class InvoiceJobReplayNotAllowedError extends ConflictError {
   }
 }
 
+export class InvoiceJobLeaseError extends ConflictError {
+  constructor(message = "Invoice job lease is no longer owned by this worker") {
+    super(message);
+  }
+}
+
 function resolveNow(deps: Pick<InvoiceUseCaseDeps, "now">): string {
   return (deps.now ?? utcNowIso)();
 }
@@ -244,27 +278,47 @@ export function createInMemoryInvoiceJobStore(
 ): InvoiceJobStore {
   const jobs = new Map<string, InvoiceGenerationJob>();
 
+  function assertLeaseOwnership(
+    current: InvoiceGenerationJob,
+    lease: InvoiceJobLease,
+  ): void {
+    if (
+      current.leaseOwner !== lease.workerId ||
+      current.leaseToken !== lease.leaseToken
+    ) {
+      throw new InvoiceJobLeaseError();
+    }
+  }
+
   return {
     async enqueue(job: InvoiceGenerationJob): Promise<void> {
       jobs.set(job.id, cloneJob(job));
     },
-    async claimNext(): Promise<InvoiceGenerationJob | null> {
+    async claimNext(input: InvoiceJobClaimInput): Promise<InvoiceGenerationJob | null> {
       const nowIso = now();
       const nowMillis = parseIsoToEpochMillis(nowIso);
 
       for (const [jobId, candidate] of jobs.entries()) {
-        if (candidate.status !== "queued") {
-          continue;
-        }
+        const isQueuedReady = (() => {
+          if (candidate.status !== "queued") return false;
+          try {
+            return parseIsoToEpochMillis(candidate.nextAttemptAt) <= nowMillis;
+          } catch {
+            return false;
+          }
+        })();
 
-        let nextAttemptMillis: number;
-        try {
-          nextAttemptMillis = parseIsoToEpochMillis(candidate.nextAttemptAt);
-        } catch {
-          continue;
-        }
+        const isExpiredProcessing = (() => {
+          if (candidate.status !== "processing") return false;
+          if (!candidate.leaseExpiresAt) return false;
+          try {
+            return parseIsoToEpochMillis(candidate.leaseExpiresAt) <= nowMillis;
+          } catch {
+            return false;
+          }
+        })();
 
-        if (nextAttemptMillis > nowMillis) {
+        if (!isQueuedReady && !isExpiredProcessing) {
           continue;
         }
 
@@ -272,6 +326,9 @@ export function createInMemoryInvoiceJobStore(
           ...candidate,
           status: "processing",
           updatedAt: nowIso,
+          leaseOwner: input.workerId,
+          leaseToken: input.leaseToken,
+          leaseExpiresAt: addSecondsToIso(nowIso, input.leaseSeconds),
         };
 
         jobs.set(jobId, claimed);
@@ -281,17 +338,41 @@ export function createInMemoryInvoiceJobStore(
       return null;
     },
 
+    async renewLease(
+      jobId: string,
+      lease: InvoiceJobLease,
+      leaseSeconds: number,
+    ): Promise<void> {
+      const current = requireJob(jobs, jobId);
+      assertLeaseOwnership(current, lease);
+
+      const nowIso = now();
+      jobs.set(jobId, {
+        ...current,
+        leaseExpiresAt: addSecondsToIso(nowIso, leaseSeconds),
+        updatedAt: nowIso,
+      });
+    },
+
     async get(jobId: string): Promise<InvoiceGenerationJob | null> {
       const job = jobs.get(jobId);
       return job ? cloneJob(job) : null;
     },
-    async markCompleted(jobId: string, invoiceId: string): Promise<void> {
+    async markCompleted(
+      jobId: string,
+      invoiceId: string,
+      lease: InvoiceJobLease,
+    ): Promise<void> {
       const current = requireJob(jobs, jobId);
+      assertLeaseOwnership(current, lease);
       jobs.set(jobId, {
         ...current,
         status: "completed",
         updatedAt: now(),
         invoiceId,
+        leaseOwner: undefined,
+        leaseToken: undefined,
+        leaseExpiresAt: undefined,
       });
     },
 
@@ -300,8 +381,10 @@ export function createInMemoryInvoiceJobStore(
       reason: string,
       nextAttemptAt: string,
       attemptCount: number,
+      lease: InvoiceJobLease,
     ): Promise<void> {
       const current = requireJob(jobs, jobId);
+      assertLeaseOwnership(current, lease);
       jobs.set(jobId, {
         ...current,
         status: "queued",
@@ -310,10 +393,18 @@ export function createInMemoryInvoiceJobStore(
         attemptCount,
         nextAttemptAt,
         updatedAt: now(),
+        leaseOwner: undefined,
+        leaseToken: undefined,
+        leaseExpiresAt: undefined,
       });
     },
-    async markDeadLetter(jobId: string, reason: string): Promise<void> {
+    async markDeadLetter(
+      jobId: string,
+      reason: string,
+      lease: InvoiceJobLease,
+    ): Promise<void> {
       const current = requireJob(jobs, jobId);
+      assertLeaseOwnership(current, lease);
       const deadLetteredAt = now();
       jobs.set(jobId, {
         ...current,
@@ -322,10 +413,14 @@ export function createInMemoryInvoiceJobStore(
         lastError: reason,
         deadLetteredAt,
         updatedAt: deadLetteredAt,
+        leaseOwner: undefined,
+        leaseToken: undefined,
+        leaseExpiresAt: undefined,
       });
     },
   };
 }
+
 
 export function createDefaultInvoiceUseCaseDeps(): InvoiceUseCaseDeps {
   return {
@@ -422,7 +517,13 @@ function buildInvoice(
 export async function processNextInvoiceGenerationJob(
   deps: InvoiceUseCaseDeps,
 ): Promise<ProcessNextInvoiceGenerationJobResult> {
-  const job = await deps.invoiceJobStore.claimNext();
+  const lease: InvoiceJobClaimInput = {
+    workerId: "worker-default",
+    leaseToken: resolveId(deps),
+    leaseSeconds: 30,
+  };
+
+  const job = await deps.invoiceJobStore.claimNext(lease);
   const observer = observerOf(deps);
 
   if (!job) {
@@ -471,7 +572,10 @@ export async function processNextInvoiceGenerationJob(
       },
     });
 
-    await deps.invoiceJobStore.markCompleted(job.id, response.invoiceId);
+    await deps.invoiceJobStore.markCompleted(job.id, response.invoiceId, {
+      workerId: lease.workerId,
+      leaseToken: lease.leaseToken,
+    });
     await notifyObserver("job_completed", () =>
       observer.onJobCompleted?.(job, response.invoiceId),
     );
@@ -499,6 +603,10 @@ export async function processNextInvoiceGenerationJob(
         reason,
         nextAttemptAt,
         nextAttempt,
+        {
+          workerId: lease.workerId,
+          leaseToken: lease.leaseToken,
+        },
       );
 
       await notifyObserver("job_retry_scheduled", () =>
@@ -513,7 +621,10 @@ export async function processNextInvoiceGenerationJob(
       };
     }
 
-    await deps.invoiceJobStore.markDeadLetter(job.id, reason);
+    await deps.invoiceJobStore.markDeadLetter(job.id, reason, {
+      workerId: lease.workerId,
+      leaseToken: lease.leaseToken,
+    });
     await notifyObserver("job_dead_lettered", () =>
       observer.onJobDeadLettered?.(job, reason),
     );
@@ -525,6 +636,7 @@ export async function processNextInvoiceGenerationJob(
     };
   }
 }
+
 
 export async function replayInvoiceGenerationJob(
   deps: InvoiceUseCaseDeps,
