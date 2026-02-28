@@ -15,7 +15,7 @@ export const paymentWebhookEnvelopeSchema = z
     receivedAt: dateTimeStringSchema,
     traceId: nonEmptyStringSchema,
   })
-  .passthrough();
+  .strict();
 
 export type PaymentWebhookEnvelopeInput = z.infer<
   typeof paymentWebhookEnvelopeSchema
@@ -35,3 +35,16 @@ export const stripeProviderEventSchema = z
   .passthrough();
 
 export type StripeProviderEvent = z.infer<typeof stripeProviderEventSchema>;
+
+export const paymentWebhookProcessResultSchema = z
+  .object({
+    status: z.enum(["processed", "duplicate", "rejected"]),
+    provider: paymentProviderNameSchema,
+    eventId: nonEmptyStringSchema.optional(),
+    reason: nonEmptyStringSchema.optional(),
+  })
+  .strict();
+
+export type PaymentWebhookProcessResultSchema = z.infer<
+  typeof paymentWebhookProcessResultSchema
+>;

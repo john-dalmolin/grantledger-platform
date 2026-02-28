@@ -1,0 +1,506 @@
+{
+  "openapi": "3.1.0",
+  "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
+  "info": {
+    "title": "GrantLedger API",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/v1/auth/subscriptions": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSubscriptionPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateSubscriptionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/checkout/sessions": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartCheckoutPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StartCheckoutResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/invoices/generation": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnqueueInvoiceGenerationPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnqueueInvoiceGenerationResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/invoices/generation/status": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetInvoiceGenerationJobStatusPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetInvoiceGenerationJobStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/webhooks/provider": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentWebhookEnvelope"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Processed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentWebhookProcessResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CreateSubscriptionPayload": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "planId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "externalReference": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "planId"
+        ],
+        "additionalProperties": false
+      },
+      "CreateSubscriptionResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "subscriptionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "tenantId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "planId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "type": "string",
+            "const": "active"
+          },
+          "createdAt": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "subscriptionId",
+          "tenantId",
+          "planId",
+          "status",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "StartCheckoutPayload": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "planId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "billingPeriod": {
+            "type": "string",
+            "enum": [
+              "monthly",
+              "yearly"
+            ]
+          },
+          "successUrl": {
+            "type": "string",
+            "minLength": 1
+          },
+          "cancelUrl": {
+            "type": "string",
+            "minLength": 1
+          },
+          "externalReference": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "planId",
+          "billingPeriod"
+        ],
+        "additionalProperties": false
+      },
+      "StartCheckoutResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "enum": [
+              "fake",
+              "stripe",
+              "paypal",
+              "adyen",
+              "braintree"
+            ]
+          },
+          "sessionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "checkoutUrl": {
+            "type": "string",
+            "minLength": 1
+          },
+          "createdAt": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "provider",
+          "sessionId",
+          "checkoutUrl",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "EnqueueInvoiceGenerationPayload": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "tenantId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "subscriptionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "customerId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "planId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "planVersionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "priceAmountInCents": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "BRL",
+              "USD",
+              "EUR"
+            ]
+          },
+          "periodStart": {
+            "type": "string",
+            "minLength": 1
+          },
+          "periodEnd": {
+            "type": "string",
+            "minLength": 1
+          },
+          "proratedDays": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "totalDaysInPeriod": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "discountInCents": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "taxRateBps": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "calculationVersion": {
+            "type": "string",
+            "minLength": 1
+          },
+          "traceId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "tenantId",
+          "subscriptionId",
+          "customerId",
+          "planId",
+          "planVersionId",
+          "priceAmountInCents",
+          "currency",
+          "periodStart",
+          "periodEnd",
+          "calculationVersion",
+          "traceId"
+        ],
+        "additionalProperties": false
+      },
+      "EnqueueInvoiceGenerationResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "jobId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "processing",
+              "completed",
+              "failed"
+            ]
+          }
+        },
+        "required": [
+          "jobId",
+          "status"
+        ],
+        "additionalProperties": false
+      },
+      "GetInvoiceGenerationJobStatusPayload": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "jobId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "jobId"
+        ],
+        "additionalProperties": false
+      },
+      "GetInvoiceGenerationJobStatusResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "jobId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "processing",
+              "completed",
+              "failed"
+            ]
+          },
+          "invoiceId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "jobId",
+          "status"
+        ],
+        "additionalProperties": false
+      },
+      "PaymentWebhookEnvelope": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "enum": [
+              "fake",
+              "stripe",
+              "paypal",
+              "adyen",
+              "braintree"
+            ]
+          },
+          "rawBody": {
+            "type": "string",
+            "minLength": 1
+          },
+          "headers": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "receivedAt": {
+            "type": "string",
+            "minLength": 1
+          },
+          "traceId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "provider",
+          "rawBody",
+          "headers",
+          "receivedAt",
+          "traceId"
+        ],
+        "additionalProperties": false
+      },
+      "PaymentWebhookProcessResult": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "processed",
+              "duplicate",
+              "rejected"
+            ]
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "fake",
+              "stripe",
+              "paypal",
+              "adyen",
+              "braintree"
+            ]
+          },
+          "eventId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "status",
+          "provider"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+}
