@@ -3,6 +3,8 @@ import { z } from "zod";
 import {
   billingPeriodSchema,
   nonEmptyStringSchema,
+  dateTimeStringSchema,
+  paymentProviderNameSchema,
 } from "./common.js";
 
 export const startCheckoutPayloadSchema = z
@@ -16,3 +18,14 @@ export const startCheckoutPayloadSchema = z
   .strict();
 
 export type StartCheckoutPayload = z.infer<typeof startCheckoutPayloadSchema>;
+
+export const startCheckoutResponseSchema = z
+  .object({
+    provider: paymentProviderNameSchema,
+    sessionId: nonEmptyStringSchema,
+    checkoutUrl: nonEmptyStringSchema,
+    createdAt: dateTimeStringSchema,
+  })
+  .strict();
+
+export type StartCheckoutResponse = z.infer<typeof startCheckoutResponseSchema>;

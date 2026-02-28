@@ -92,3 +92,4 @@ export const createSubscriptionResponseSchema = z
 export type CreateSubscriptionResponse = z.infer<
   typeof createSubscriptionResponseSchema
 >;
+
