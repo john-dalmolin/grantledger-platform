@@ -4,24 +4,18 @@ import {
   executeIdempotent,
   resolveRequestContext,
 } from "@grantledger/application";
-import type {
-  RequestContext,
+import {
+  createSubscriptionPayloadSchema,
+  createSubscriptionResponseSchema,
+  type RequestContext,
+  type CreateSubscriptionResponse,
 } from "@grantledger/contracts";
-import { createSubscriptionPayloadSchema } from "@grantledger/contracts";
 
 import { parseOrThrowBadRequest } from "../http/validation.js";
 import type { ApiResponse, Headers } from "../http/types.js";
 import type { Membership } from "@grantledger/domain";
 import { getHeader } from "../http/headers.js";
 import { t, utcNowIso } from "@grantledger/shared";
-
-interface CreateSubscriptionResponse {
-  subscriptionId: string;
-  tenantId: string;
-  planId: string;
-  status: "active";
-  createdAt: string;
-}
 
 const membershipStore: Membership[] = [
   { userId: "u_1", tenantId: "t_1", role: "owner", status: "active" },
@@ -101,13 +95,13 @@ export async function handleCreateSubscription(
       store: authIdempotencyStore,
       execute: async () => {
         subscriptionCounter += 1;
-        return {
+        return createSubscriptionResponseSchema.parse({
           subscriptionId: `sub_${subscriptionCounter}`,
           tenantId: context.tenant.id,
           planId: parsedPayload.planId,
           status: "active",
           createdAt: utcNowIso(),
-        };
+        });
       },
     });
 

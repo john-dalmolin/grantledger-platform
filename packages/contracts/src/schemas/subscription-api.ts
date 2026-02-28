@@ -13,7 +13,7 @@ export const createSubscriptionCommandPayloadSchema = z
     trialEndsAt: dateTimeStringSchema.optional(),
     reason: nonEmptyStringSchema.optional(),
   })
-  .passthrough();
+  .strict();
 
 export type CreateSubscriptionCommandPayload = z.infer<
   typeof createSubscriptionCommandPayloadSchema
@@ -26,7 +26,7 @@ export const upgradeSubscriptionCommandPayloadSchema = z
     effectiveAt: dateTimeStringSchema,
     reason: nonEmptyStringSchema.optional(),
   })
-  .passthrough();
+  .strict();
 
 export type UpgradeSubscriptionCommandPayload = z.infer<
   typeof upgradeSubscriptionCommandPayloadSchema
@@ -39,7 +39,7 @@ export const downgradeSubscriptionCommandPayloadSchema = z
     effectiveAt: dateTimeStringSchema,
     reason: nonEmptyStringSchema.optional(),
   })
-  .passthrough();
+  .strict();
 
 export type DowngradeSubscriptionCommandPayload = z.infer<
   typeof downgradeSubscriptionCommandPayloadSchema
@@ -51,7 +51,7 @@ export const cancelSubscriptionNowCommandPayloadSchema = z
     canceledAt: dateTimeStringSchema,
     reason: nonEmptyStringSchema.optional(),
   })
-  .passthrough();
+  .strict();
 
 export type CancelSubscriptionNowCommandPayload = z.infer<
   typeof cancelSubscriptionNowCommandPayloadSchema
@@ -62,7 +62,7 @@ export const cancelSubscriptionAtPeriodEndCommandPayloadSchema = z
     subscriptionId: nonEmptyStringSchema,
     reason: nonEmptyStringSchema.optional(),
   })
-  .passthrough();
+  .strict();
 
 export type CancelSubscriptionAtPeriodEndCommandPayload = z.infer<
   typeof cancelSubscriptionAtPeriodEndCommandPayloadSchema
@@ -73,8 +73,22 @@ export const createSubscriptionPayloadSchema = z
     planId: nonEmptyStringSchema,
     externalReference: nonEmptyStringSchema.optional(),
   })
-  .passthrough();
+  .strict();
 
 export type CreateSubscriptionPayload = z.infer<
   typeof createSubscriptionPayloadSchema
+>;
+
+export const createSubscriptionResponseSchema = z
+  .object({
+    subscriptionId: nonEmptyStringSchema,
+    tenantId: nonEmptyStringSchema,
+    planId: nonEmptyStringSchema,
+    status: z.literal("active"),
+    createdAt: dateTimeStringSchema,
+  })
+  .strict();
+
+export type CreateSubscriptionResponse = z.infer<
+  typeof createSubscriptionResponseSchema
 >;
