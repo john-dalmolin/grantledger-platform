@@ -7,7 +7,6 @@ import {
   CreateCheckoutSessionInput,
   CreateCheckoutSessionResult,
   startCheckoutPayloadSchema,
-  StartCheckoutPayload,
 } from "@grantledger/contracts";
 
 import { resolveContextFromHeaders } from "./auth.js";
@@ -42,7 +41,7 @@ export interface StartCheckoutHandlerDeps {
 
 export type StartCheckoutHandler = (
   headers: Headers,
-  payload: StartCheckoutPayload,
+  payload: unknown,
 ) => Promise<ApiResponse>;
 
 function localeFromHeaders(headers: Headers): string | undefined {
@@ -54,7 +53,7 @@ export function createStartCheckoutHandler(
 ): StartCheckoutHandler {
   return async function handleStartCheckout(
     headers: Headers,
-    payload: StartCheckoutPayload,
+    payload: unknown,
   ): Promise<ApiResponse> {
     const locale = localeFromHeaders(headers);
 

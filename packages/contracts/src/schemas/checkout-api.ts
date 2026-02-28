@@ -13,6 +13,6 @@ export const startCheckoutPayloadSchema = z
     cancelUrl: nonEmptyStringSchema.optional(),
     externalReference: nonEmptyStringSchema.optional(),
   })
-  .passthrough();
+  .strict();
 
 export type StartCheckoutPayload = z.infer<typeof startCheckoutPayloadSchema>;

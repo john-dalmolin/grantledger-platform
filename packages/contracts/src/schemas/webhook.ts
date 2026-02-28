@@ -15,7 +15,7 @@ export const paymentWebhookEnvelopeSchema = z
     receivedAt: dateTimeStringSchema,
     traceId: nonEmptyStringSchema,
   })
-  .passthrough();
+  .strict();
 
 export type PaymentWebhookEnvelopeInput = z.infer<
   typeof paymentWebhookEnvelopeSchema

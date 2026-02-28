@@ -5,7 +5,6 @@ import {
   resolveRequestContext,
 } from "@grantledger/application";
 import type {
-  CreateSubscriptionPayload,
   RequestContext,
 } from "@grantledger/contracts";
 import { createSubscriptionPayloadSchema } from "@grantledger/contracts";
@@ -77,7 +76,7 @@ export function handleProtectedRequest(headers: Headers): ApiResponse {
 
 export async function handleCreateSubscription(
   headers: Headers,
-  payload: CreateSubscriptionPayload,
+  payload: unknown,
 ): Promise<ApiResponse> {
   const locale = localeFromHeaders(headers);
 

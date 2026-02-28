@@ -37,7 +37,8 @@ export const enqueueInvoiceGenerationPayloadSchema = z.object({
   taxRateBps: z.number().int().nonnegative().optional(),
   calculationVersion: nonEmptyStringSchema,
   traceId: nonEmptyStringSchema,
-});
+})
+  .strict();
 
 type RawEnqueueInvoiceGenerationPayload = z.infer<
   typeof enqueueInvoiceGenerationPayloadSchema
@@ -65,7 +66,8 @@ export type EnqueueInvoiceGenerationResponse = Simplify<
 
 export const getInvoiceGenerationJobStatusPayloadSchema = z.object({
   jobId: nonEmptyStringSchema,
-});
+})
+  .strict();
 
 type RawGetInvoiceGenerationJobStatusPayload = z.infer<
   typeof getInvoiceGenerationJobStatusPayloadSchema
