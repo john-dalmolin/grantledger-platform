@@ -10,9 +10,29 @@ import {
   executeIdempotent,
   IdempotencyConflictError,
 } from "./idempotency.js";
+import { BadRequestError } from "./errors.js";
 
-export class InvalidWebhookSignatureError extends Error {}
-export class DuplicateWebhookEventError extends Error {}
+export class InvalidWebhookSignatureError extends Error { }
+export class DuplicateWebhookEventError extends Error { }
+
+export class UnsupportedWebhookEventError extends BadRequestError {
+  readonly provider: PaymentProviderName;
+  readonly eventId: string;
+  readonly providerEventType: string;
+
+  constructor(input: {
+    provider: PaymentProviderName;
+    eventId: string;
+    providerEventType: string;
+  }) {
+    super(
+      `Unsupported ${input.provider} event type: ${input.providerEventType} (eventId=${input.eventId})`,
+    );
+    this.provider = input.provider;
+    this.eventId = input.eventId;
+    this.providerEventType = input.providerEventType;
+  }
+}
 
 export interface PaymentWebhookProvider {
   readonly provider: PaymentProviderName;
@@ -141,6 +161,8 @@ export async function processProviderWebhook(
     };
   } catch (error) {
     const reason = error instanceof Error ? error.message : "Unexpected error";
+    const rejectedEventId =
+      error instanceof UnsupportedWebhookEventError ? error.eventId : undefined;
 
     await deps.auditStore.saveRaw({
       provider: input.provider,
@@ -148,6 +170,7 @@ export async function processProviderWebhook(
       rawBody: input.rawBody,
       headers: input.headers,
       receivedAt: input.receivedAt,
+      ...(rejectedEventId !== undefined ? { eventId: rejectedEventId } : {}),
       status: "rejected",
       reason,
     });

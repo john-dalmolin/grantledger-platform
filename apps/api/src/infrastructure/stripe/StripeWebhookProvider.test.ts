@@ -1,8 +1,8 @@
 import Stripe from "stripe";
 import { describe, expect, it } from "vitest";
 import {
-  BadRequestError,
   InvalidWebhookSignatureError,
+  UnsupportedWebhookEventError,
 } from "@grantledger/application";
 import { StripeWebhookProvider } from "./StripeWebhookProvider.js";
 
@@ -94,6 +94,6 @@ describe("StripeWebhookProvider", () => {
         headers: { "stripe-signature": signature },
         traceId: "trace-1",
       }),
-    ).rejects.toBeInstanceOf(BadRequestError);
+    ).rejects.toBeInstanceOf(UnsupportedWebhookEventError);
   });
 });

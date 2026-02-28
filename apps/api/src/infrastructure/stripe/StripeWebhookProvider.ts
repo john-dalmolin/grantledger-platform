@@ -7,6 +7,7 @@ import {
 import {
   BadRequestError,
   InvalidWebhookSignatureError,
+  UnsupportedWebhookEventError,
   type PaymentWebhookProvider,
 } from "@grantledger/application";
 import { epochSecondsToUtcIso } from "@grantledger/shared";
@@ -105,9 +106,11 @@ export class StripeWebhookProvider implements PaymentWebhookProvider {
     const canonicalType = this.mapStripeType(providerEvent.type);
 
     if (!canonicalType) {
-      throw new BadRequestError(
-        `Unsupported Stripe event type: ${providerEvent.type} (eventId=${providerEvent.id})`,
-      );
+      throw new UnsupportedWebhookEventError({
+        provider: "stripe",
+        eventId: providerEvent.id,
+        providerEventType: providerEvent.type,
+      });
     }
 
     const object = providerEvent.data?.object ?? {};
