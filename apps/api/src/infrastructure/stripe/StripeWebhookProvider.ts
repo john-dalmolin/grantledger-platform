@@ -1,3 +1,4 @@
+import Stripe from "stripe";
 import {
   stripeProviderEventSchema,
   type CanonicalPaymentEvent,
@@ -6,14 +7,45 @@ import {
 import {
   BadRequestError,
   InvalidWebhookSignatureError,
+  UnsupportedWebhookEventError,
   type PaymentWebhookProvider,
 } from "@grantledger/application";
 import { epochSecondsToUtcIso } from "@grantledger/shared";
 
+const DEFAULT_SIGNATURE_TOLERANCE_SECONDS = 300;
+
+type StripeWebhookProviderOptions = {
+  toleranceSeconds?: number;
+  stripe?: Stripe;
+};
+
 export class StripeWebhookProvider implements PaymentWebhookProvider {
   readonly provider = "stripe" as const;
 
-  constructor(private readonly webhookSecret: string) {}
+  private readonly stripe: Stripe;
+  private readonly webhookSecret: string;
+  private readonly toleranceSeconds: number;
+
+  constructor(
+    webhookSecret: string,
+    options: StripeWebhookProviderOptions = {},
+  ) {
+    const normalizedSecret = webhookSecret.trim();
+    if (!normalizedSecret) {
+      throw new Error("STRIPE_WEBHOOK_SECRET is required");
+    }
+
+    const toleranceSeconds =
+      options.toleranceSeconds ?? DEFAULT_SIGNATURE_TOLERANCE_SECONDS;
+
+    if (!Number.isInteger(toleranceSeconds) || toleranceSeconds <= 0) {
+      throw new Error("Stripe webhook tolerance must be a positive integer");
+    }
+
+    this.webhookSecret = normalizedSecret;
+    this.toleranceSeconds = toleranceSeconds;
+    this.stripe = options.stripe ?? new Stripe("sk_test_webhook_verification");
+  }
 
   async verifyAndNormalizeWebhook(input: {
     rawBody: string;
@@ -26,15 +58,10 @@ export class StripeWebhookProvider implements PaymentWebhookProvider {
       throw new InvalidWebhookSignatureError("Missing Stripe signature header");
     }
 
-    // TODO: replace with real Stripe SDK signature verification.
-    // Keeping deterministic placeholder until SDK wiring is added.
-    if (!this.isSignatureValid(input.rawBody, signature, this.webhookSecret)) {
-      throw new InvalidWebhookSignatureError(
-        "Invalid Stripe webhook signature",
-      );
-    }
-
-    const providerEvent = this.parseProviderEvent(input.rawBody);
+    const providerEvent = this.verifySignatureAndParseEvent(
+      input.rawBody,
+      signature,
+    );
 
     return this.toCanonicalEvent(providerEvent, input.traceId);
   }
@@ -46,27 +73,24 @@ export class StripeWebhookProvider implements PaymentWebhookProvider {
     return headers[key] ?? headers[key.toLowerCase()];
   }
 
-  private isSignatureValid(
+  private verifySignatureAndParseEvent(
     rawBody: string,
     signature: string,
-    secret: string,
-  ): boolean {
-    // Placeholder strategy:
-    // accept if secret and signature are present.
-    // Replace this by Stripe constructEvent in next step.
-    return rawBody.length > 0 && signature.length > 0 && secret.length > 0;
-  }
-
-  private parseProviderEvent(rawBody: string): StripeProviderEvent {
-    let parsedJson: unknown;
+  ): StripeProviderEvent {
+    let signedEvent: unknown;
 
     try {
-      parsedJson = JSON.parse(rawBody);
+      signedEvent = this.stripe.webhooks.constructEvent(
+        rawBody,
+        signature,
+        this.webhookSecret,
+        this.toleranceSeconds,
+      );
     } catch {
-      throw new BadRequestError("Invalid Stripe event payload: malformed JSON");
+      throw new InvalidWebhookSignatureError("Invalid Stripe webhook signature");
     }
 
-    const parsedEvent = stripeProviderEventSchema.safeParse(parsedJson);
+    const parsedEvent = stripeProviderEventSchema.safeParse(signedEvent);
 
     if (!parsedEvent.success) {
       throw new BadRequestError("Invalid Stripe event payload");
@@ -80,6 +104,14 @@ export class StripeWebhookProvider implements PaymentWebhookProvider {
     traceId: string,
   ): CanonicalPaymentEvent {
     const canonicalType = this.mapStripeType(providerEvent.type);
+
+    if (!canonicalType) {
+      throw new UnsupportedWebhookEventError({
+        provider: "stripe",
+        eventId: providerEvent.id,
+        providerEventType: providerEvent.type,
+      });
+    }
 
     const object = providerEvent.data?.object ?? {};
     const tenantId = this.readString(object, "metadata.tenant_id");
@@ -102,7 +134,7 @@ export class StripeWebhookProvider implements PaymentWebhookProvider {
     };
   }
 
-  private mapStripeType(type: string): CanonicalPaymentEvent["type"] {
+  private mapStripeType(type: string): CanonicalPaymentEvent["type"] | null {
     switch (type) {
       case "invoice.paid":
         return "invoice.paid";
@@ -119,7 +151,7 @@ export class StripeWebhookProvider implements PaymentWebhookProvider {
       case "payment_intent.payment_failed":
         return "payment.failed";
       default:
-        return "subscription.updated";
+        return null;
     }
   }
 
