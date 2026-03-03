@@ -8,10 +8,8 @@
 - 
 
 ## Validation
-- [ ] npm run lint
-- [ ] npm run typecheck
-- [ ] npm run build
-- [ ] npm run test
+- [ ] npm run quality:gate
+- [ ] DATABASE_URL=postgresql://grantledger:grantledger@localhost:5432/grantledger npm run test:pg (or CI evidence)
 
 ## Risks / Trade-offs
 - 
