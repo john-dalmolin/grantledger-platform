@@ -24,6 +24,8 @@ Canonical references:
 - ARCH-010 completed (`#56`, merge `487c7bf`)
 - ARCH-011 completed (`#59`, merge `e58acbb`)
 - ARCH-012 completed (`#65`, merge `ea6db9a`)
+- ARCH-018 completed (`#89`, merge `4c384d0`)
+- ARCH-021 in progress (`#78`)
 
 ## Target Architecture Principles
 
@@ -35,10 +37,10 @@ Canonical references:
 
 ## Current Prioritized Sequence
 
-1. ARCH-010: invoice async infrastructure hardening (durable queue + retries + observability) (completed)
-2. ARCH-011: invoice async operational readiness (observability + replay controls) (completed)
+1. ARCH-018: schema-first boundaries and OpenAPI generation (completed)
+2. ARCH-021: CI/CD quality and security gates (in progress)
 
-- Preserve API/application contracts delivered in ARCH-009 while evolving infrastructure.
+- Preserve API/application contracts delivered in ARCH-018 while introducing stricter delivery gates.
 
 ## Delivery Strategy
 
@@ -46,10 +48,9 @@ Canonical references:
 - Keep architecture PRs focused and reviewable.
 - No unrelated business scope mixed into ARCH PRs.
 - Required gates per PR:
-  - `npm run typecheck`
-  - `npm run build`
-  - `npm run lint`
-  - `npm run test`
+  - `npm run quality:gate`
+  - `DATABASE_URL=postgresql://grantledger:grantledger@localhost:5432/grantledger npm run test:pg` (CI mandatory)
+  - Security baseline checks (`Dependency Audit`, `CodeQL`)
 
 ## Mandatory Governance Workflow (Always)
 
@@ -75,9 +76,9 @@ Canonical references:
 - Idempotency orchestration is generic and reusable.
 - Governance docs stay synchronized with code and PR lifecycle.
 
-## Next execution focus: ARCH-013
+## Next execution focus: ARCH-021
 
-- Enforce schema-first contracts (Zod schemas as source of truth + inferred TypeScript types).
-- Unify datetime parsing/arithmetic through Luxon helpers in shared.
-- Remove duplicated orchestration logic and keep domain/application boundaries explicit.
-- Preserve current API behavior and standardized error envelope semantics.
+- Enforce lint/typecheck/build/OpenAPI/test gates in GitHub Actions.
+- Add Postgres-backed integration test execution in CI.
+- Add security scanning baseline (dependency audit + CodeQL).
+- Align branch protection policy with CI checks.

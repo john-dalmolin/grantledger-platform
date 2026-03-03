@@ -30,7 +30,7 @@ It aims to give product and engineering teams confidence that billing behavior i
 
 ## At a Glance
 
-> Current status on `main`: architecture hardening stream delivered through `ARCH-012`; next planned focus is `ARCH-013`.
+> Current status on `main`: architecture hardening stream delivered through `ARCH-018`; active focus is `ARCH-021` (CI/CD quality + security gates).
 
 - domain rules stay pure and deterministic
 - use cases orchestrate idempotency, retries, and audit flow
@@ -156,7 +156,7 @@ npm ci
 ### Full quality gate
 
 ```bash
-npm run lint && npm run typecheck && npm run build && npm run test
+npm run quality:gate
 ```
 
 ## Testing Strategy

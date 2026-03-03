@@ -12,5 +12,22 @@ export default defineConfig({
       "packages/infra-postgres/src/**/*.test.ts",
     ],
     globals: false,
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "lcov"],
+      exclude: [
+        "**/*.test.ts",
+        "**/*.d.ts",
+        "**/index.ts",
+        "docs/**",
+        "scripts/**",
+      ],
+      thresholds: {
+        statements: 55,
+        branches: 45,
+        functions: 50,
+        lines: 55,
+      },
+    },
   },
 });

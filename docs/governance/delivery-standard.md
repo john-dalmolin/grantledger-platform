@@ -12,10 +12,15 @@
 - Use Squash and Merge
 
 ## Required Gates (local and CI)
-- `npm run lint`
-- `npm run typecheck`
-- `npm run build`
-- `npm run test`
+- `npm run quality:gate`
+- `DATABASE_URL=postgresql://grantledger:grantledger@localhost:5432/grantledger npm run test:pg` (CI mandatory)
+- Security workflow should be green or explicitly triaged in PR risks.
+
+## Branch Protection Baseline
+- Protect `main` and require CI checks:
+- `CI / Quality Gate`
+- `CI / Postgres Integration`
+- Keep security checks visible and actionable; move to blocking after baseline stabilization.
 
 ## PR Quality
 - Include Summary, Why, Scope, Validation, Risks

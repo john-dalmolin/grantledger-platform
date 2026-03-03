@@ -146,6 +146,20 @@ Deliver structural improvements without blocking feature delivery.
   - Merge SHA: `ea6db9a73ac59e7fa2575808ae45d6f10c1701fb`
   - Notes: Enforce schema-first contracts (Zod as source of truth), unify Luxon datetime policy, and remove duplicated boundary orchestration while preserving API behavior.
 
+- [x] ARCH-018 - Schema-first boundaries and OpenAPI generation
+  - Status: DONE
+  - Issue: `#75`
+  - Branch: `chore/arch-018-schema-boundaries`
+  - PR: `#89`
+  - Merge SHA: `4c384d0`
+  - Notes: Hardened schema-first request boundaries, added OpenAPI generation/validation scripts, and versioned OpenAPI artifact checks.
+
+- [ ] ARCH-021 - CI/CD quality and security gates
+  - Status: IN_PROGRESS
+  - Issue: `#78`
+  - Branch: `chore/arch-021-ci-security-gates`
+  - Notes: Add GitHub Actions CI + security workflows, enforce OpenAPI drift checks, run Postgres integration in CI, and align branch protection.
+
 ## ADR References
 
 - [x] ADR-005 - Domain vs Application boundary
@@ -158,12 +172,15 @@ Deliver structural improvements without blocking feature delivery.
 - [x] ADR-012 - Classes vs functions guideline (accepted)
 - [x] ADR-013 - Async idempotent invoice rollout (accepted)
 - [x] ADR-014 - Durable invoice async infrastructure (accepted)
+- [x] ADR-016 - Schema-first contracts, time policy, and boundary polish (accepted)
 
 ## Quality Gates (mandatory per PR)
 
 - [ ] `npm run typecheck`
 - [ ] `npm run build`
 - [ ] `npm run lint`
+- [ ] `npm run openapi:check`
+- [ ] `npm run test`
 - [ ] `Architectural scope respected (no mixed feature work)`
 
 ## Done Criteria for ARCH-000
