@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type {
   EnqueueInvoiceGenerationResponse,
   GenerateInvoiceForCycleInput,
@@ -230,6 +230,31 @@ it("continues processing when observer throws", async () => {
   expect(result).toEqual({ status: "processed", jobId });
   expect(status.status).toBe("completed");
   expect(repository.saveCount).toBe(1);
+});
+
+it("emits structured worker cycle log with metrics", async () => {
+  const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
+  const deps = makeDeps(new InMemoryCountingInvoiceRepository());
+
+  const result = await runInvoiceWorkerOnce(deps);
+
+  expect(result).toEqual({ status: "idle" });
+  expect(logSpy).toHaveBeenCalled();
+
+  const line = String(logSpy.mock.calls.at(-1)?.[0] ?? "{}");
+  const parsed = JSON.parse(line) as Record<string, unknown>;
+
+  expect(parsed).toMatchObject({
+    level: "info",
+    type: "invoice_worker_cycle",
+    status: "idle",
+  });
+  expect(typeof parsed.durationMs).toBe("number");
+  expect(typeof parsed.queueDepth).toBe("number");
+  expect(typeof parsed.retryScheduledCount).toBe("number");
+  expect(typeof parsed.deadLetterCount).toBe("number");
+
+  logSpy.mockRestore();
 });
 
 describe("worker runtime config", () => {

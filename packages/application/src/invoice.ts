@@ -17,6 +17,7 @@ import {
 } from "@grantledger/domain";
 import {
   addSecondsToIso,
+  emitStructuredLog,
   hashPayload,
   parseIsoToEpochMillis,
   utcNowIso,
@@ -144,13 +145,14 @@ async function notifyObserver(
     const reason =
       error instanceof Error ? error.message : "Unexpected observer failure";
 
-    console.warn(
-      JSON.stringify({
-        type: "invoice_job_observer_error",
+    emitStructuredLog({
+      level: "warn",
+      type: "invoice_job_observer_error",
+      payload: {
         event,
         reason,
-      }),
-    );
+      },
+    });
   }
 }
 
@@ -287,7 +289,10 @@ export function createInMemoryInvoiceRepository(): InvoiceRepository {
 export function createConsoleInvoiceAuditLogger(): InvoiceAuditLogger {
   return {
     async log(event: InvoiceAuditEvent): Promise<void> {
-      console.log(JSON.stringify({ type: "invoice_audit", ...event }));
+      emitStructuredLog({
+        type: "invoice_audit",
+        payload: event as unknown as Record<string, unknown>,
+      });
     },
   };
 }

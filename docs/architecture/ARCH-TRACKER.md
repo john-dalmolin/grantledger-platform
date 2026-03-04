@@ -162,6 +162,14 @@ Deliver structural improvements without blocking feature delivery.
   - Merge SHA: `e56fc1d`
   - Notes: Introduced Error Model v2 with `messageKey`/`messageParams`, preserved backward compatibility (`message` + `code`), added structured validation details (`details.issues[]`), and expanded en-US error catalog for critical paths.
 
+- [ ] ARCH-020 - Full operational observability baseline
+  - Status: IN_PROGRESS
+  - Issue: `#77`
+  - Branch: `chore/arch-020-observability-baseline`
+  - PR: `TBD`
+  - Merge SHA: `TBD`
+  - Notes: Started ARCH-020 to establish observability baseline (logs, metrics, tracing, and alerting expectations).
+
 - [x] ARCH-021 - CI/CD quality and security gates
   - Status: DONE
   - Issue: `#78`
