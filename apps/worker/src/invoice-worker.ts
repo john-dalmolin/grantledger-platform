@@ -1,17 +1,22 @@
 import { randomUUID } from "node:crypto";
 import { hostname } from "node:os";
 import {
+  createInMemoryInvoiceOpsMonitor,
   getSharedInvoiceUseCaseDeps,
   processNextInvoiceGenerationJob,
+  type InvoiceOpsMonitor,
+  type InvoiceOpsSnapshot,
   type InvoiceUseCaseDeps,
 } from "@grantledger/application";
 import {
   createPostgresInvoiceUseCaseDeps,
   createPostgresPool,
 } from "@grantledger/infra-postgres";
+import { emitStructuredLog } from "@grantledger/shared";
 
 export interface InvoiceWorkerDeps {
   invoiceUseCases: InvoiceUseCaseDeps;
+  opsMonitor?: InvoiceOpsMonitor;
 }
 
 export interface RunInvoiceWorkerOnceResult {
@@ -28,6 +33,15 @@ export interface InvoiceWorkerRuntimeConfig {
 const DEFAULT_LEASE_SECONDS = 30;
 const DEFAULT_HEARTBEAT_SECONDS = 10;
 const defaultWorkerId = `${hostname()}-${process.pid}-${randomUUID().slice(0, 8)}`;
+
+const EMPTY_SNAPSHOT: InvoiceOpsSnapshot = {
+  queueDepth: 0,
+  processingCount: 0,
+  completedCount: 0,
+  retryScheduledCount: 0,
+  deadLetterCount: 0,
+  terminalFailureRate: 0,
+};
 
 function parsePositiveInt(
   raw: string | undefined,
@@ -79,9 +93,15 @@ function resolveWorkerTenantId(): string {
 }
 
 function createDefaultWorkerDeps(): InvoiceWorkerDeps {
+  const opsMonitor = createInMemoryInvoiceOpsMonitor();
+
   if (process.env.PERSISTENCE_DRIVER !== "postgres") {
     return {
-      invoiceUseCases: getSharedInvoiceUseCaseDeps(),
+      invoiceUseCases: {
+        ...getSharedInvoiceUseCaseDeps(),
+        jobObserver: opsMonitor.observer,
+      },
+      opsMonitor,
     };
   }
 
@@ -89,8 +109,16 @@ function createDefaultWorkerDeps(): InvoiceWorkerDeps {
   const tenantId = resolveWorkerTenantId();
 
   return {
-    invoiceUseCases: createPostgresInvoiceUseCaseDeps(pool, tenantId),
+    invoiceUseCases: {
+      ...createPostgresInvoiceUseCaseDeps(pool, tenantId),
+      jobObserver: opsMonitor.observer,
+    },
+    opsMonitor,
   };
+}
+
+function resolveSnapshot(deps: InvoiceWorkerDeps): InvoiceOpsSnapshot {
+  return deps.opsMonitor?.snapshot() ?? EMPTY_SNAPSHOT;
 }
 
 const defaultWorkerDeps: InvoiceWorkerDeps = createDefaultWorkerDeps();
@@ -98,7 +126,9 @@ const defaultWorkerDeps: InvoiceWorkerDeps = createDefaultWorkerDeps();
 export async function runInvoiceWorkerOnce(
   deps: InvoiceWorkerDeps = defaultWorkerDeps,
 ): Promise<RunInvoiceWorkerOnceResult> {
+  const startedAt = Date.now();
   const runtimeConfig = resolveInvoiceWorkerRuntimeConfig();
+
   const result = await processNextInvoiceGenerationJob(deps.invoiceUseCases, {
     lease: {
       workerId: runtimeConfig.workerId,
@@ -108,26 +138,32 @@ export async function runInvoiceWorkerOnce(
     heartbeatSeconds: runtimeConfig.heartbeatSeconds,
   });
 
+  let cycleResult: RunInvoiceWorkerOnceResult;
+
   if (result.status === "no_job") {
-    return { status: "idle" };
+    cycleResult = { status: "idle" };
+  } else if (result.status === "retry_scheduled" || result.status === "failed") {
+    cycleResult = { status: "failed", jobId: result.jobId };
+  } else {
+    cycleResult = { status: "processed", jobId: result.jobId };
   }
 
-  if (result.status === "retry_scheduled") {
-    return {
-      status: "failed",
-      jobId: result.jobId,
-    };
-  }
+  const snapshot = resolveSnapshot(deps);
 
-  if (result.status === "failed") {
-    return {
-      status: "failed",
-      jobId: result.jobId,
-    };
-  }
+  emitStructuredLog({
+    type: "invoice_worker_cycle",
+    payload: {
+      status: cycleResult.status,
+      ...(cycleResult.jobId !== undefined ? { jobId: cycleResult.jobId } : {}),
+      durationMs: Date.now() - startedAt,
+      queueDepth: snapshot.queueDepth,
+      processingCount: snapshot.processingCount,
+      completedCount: snapshot.completedCount,
+      retryScheduledCount: snapshot.retryScheduledCount,
+      deadLetterCount: snapshot.deadLetterCount,
+      terminalFailureRate: snapshot.terminalFailureRate,
+    },
+  });
 
-  return {
-    status: "processed",
-    jobId: result.jobId,
-  };
+  return cycleResult;
 }
