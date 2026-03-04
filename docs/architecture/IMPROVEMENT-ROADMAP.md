@@ -27,7 +27,7 @@ Canonical references:
 - ARCH-018 completed (`#89`, `#92`, `#93`; merges `4c384d0`, `3faf3f0`, `9da76c7`)
 - ARCH-021 completed (`#90`, merge `b007968`)
 - ARCH-019 completed (`#95`, merge `e56fc1d`)
-- ARCH-020 planned (`#77`)
+- ARCH-020 in progress (`#77`, branch `chore/arch-020-observability-baseline`)
 - ARCH-022 planned (`#79`)
 
 ## Target Architecture Principles
@@ -40,10 +40,10 @@ Canonical references:
 
 ## Current Prioritized Sequence
 
-1. ARCH-020: full operational observability baseline (planned)
+1. ARCH-020: full operational observability baseline (in progress)
 2. ARCH-022: performance, resilience, and readiness finalization (planned)
 
-- Preserve ARCH-018/ARCH-021/ARCH-019 contract and CI/security baselines while hardening observability in ARCH-020 before final readiness in ARCH-022.
+- Preserve ARCH-018/ARCH-021/ARCH-019 baselines while hardening observability in ARCH-020 before final readiness in ARCH-022.
 
 ## Delivery Strategy
 
