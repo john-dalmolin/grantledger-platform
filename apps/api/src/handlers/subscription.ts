@@ -32,7 +32,7 @@ import {
 } from "@grantledger/contracts";
 
 import { parseOrThrowBadRequest } from "../http/validation.js";
-import type { Clock, IdGenerator } from "@grantledger/shared";
+import { emitStructuredLog, type Clock, type IdGenerator } from "@grantledger/shared";
 
 import { getHeader } from "../http/headers.js";
 import type { ApiResponse, Headers } from "../http/types.js";
@@ -56,13 +56,13 @@ class InMemorySubscriptionRepository implements SubscriptionRepository {
 
 class ConsoleSubscriptionEventPublisher implements SubscriptionEventPublisher {
   async publish(event: SubscriptionDomainEvent): Promise<void> {
-    console.log(JSON.stringify({ type: "domain_event", ...event }));
+    emitStructuredLog({ type: "domain_event", payload: event as unknown as Record<string, unknown> });
   }
 }
 
 class ConsoleSubscriptionAuditLogger implements SubscriptionAuditLogger {
   async log(event: SubscriptionAuditEvent): Promise<void> {
-    console.log(JSON.stringify({ type: "audit_event", ...event }));
+    emitStructuredLog({ type: "audit_event", payload: event as unknown as Record<string, unknown> });
   }
 }
 
