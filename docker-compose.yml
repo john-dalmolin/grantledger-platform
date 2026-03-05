@@ -3,15 +3,17 @@ services:
     image: postgres:16-alpine
     container_name: grantledger-postgres
     environment:
-      POSTGRES_DB: grantledger
-      POSTGRES_USER: grantledger
-      POSTGRES_PASSWORD: grantledger
+      POSTGRES_DB: grantledger_rls
+      POSTGRES_USER: grantledger_admin
+      POSTGRES_PASSWORD: grantledger_admin
     ports:
       - "5432:5432"
     volumes:
       - grantledger_pg_data:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U grantledger -d grantledger"]
+      test:
+        ["CMD-SHELL", "pg_isready -U grantledger_admin -d grantledger_rls"]
       interval: 5s
       timeout: 5s
       retries: 20
