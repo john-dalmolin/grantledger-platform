@@ -242,9 +242,9 @@ apply_if_changed() {
   changed_fields=$((changed_fields + 1))
 }
 
-items_jq='.items[] | select((.content.type // "")=="Issue") | [.id, (.content.url // ""), (.milestone.title // ""), (.status // ""), (.priority // ""), (.area // ""), (.type // ""), (.wave // ""), (.risk // "")] | @tsv'
+items_jq='.items[] | select((.content.type // "")=="Issue") | [.id, (.content.url // ""), (.milestone.title // ""), (.status // ""), (.priority // ""), (.area // ""), (.type // ""), (.wave // ""), (.risk // "")] | join("\u001f")'
 if [[ -n "$ONLY_ISSUE_NUMBER" ]]; then
-  items_jq=".items[] | select((.content.type // \"\")==\"Issue\" and ((.content.url // \"\") | test(\"/issues/${ONLY_ISSUE_NUMBER}$\"))) | [.id, (.content.url // \"\"), (.milestone.title // \"\"), (.status // \"\"), (.priority // \"\"), (.area // \"\"), (.type // \"\"), (.wave // \"\"), (.risk // \"\")] | @tsv"
+  items_jq=".items[] | select((.content.type // \"\")==\"Issue\" and ((.content.url // \"\") | test(\"/issues/${ONLY_ISSUE_NUMBER}$\"))) | [.id, (.content.url // \"\"), (.milestone.title // \"\"), (.status // \"\"), (.priority // \"\"), (.area // \"\"), (.type // \"\"), (.wave // \"\"), (.risk // \"\")] | join(\"\\u001f\")"
 fi
 
 updated=0
@@ -252,7 +252,7 @@ skipped=0
 warnings=0
 changed_fields_total=0
 
-while IFS=$'\t' read -r item_id url milestone current_status current_priority current_area current_type current_wave current_risk; do
+while IFS=$'\x1f' read -r item_id url milestone current_status current_priority current_area current_type current_wave current_risk; do
   [[ -z "$url" ]] && continue
 
   repo=$(echo "$url" | awk -F/ '{print $4 "/" $5}')
