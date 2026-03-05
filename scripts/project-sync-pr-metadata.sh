@@ -147,7 +147,7 @@ infer_area_from_title() {
   if [[ "$t" == *"payment"* || "$t" == *"stripe"* || "$t" == *"webhook"* || "$t" == *"checkout"* ]]; then echo "payments"; return; fi
   if [[ "$t" == *"entitlement"* ]]; then echo "entitlements"; return; fi
   if [[ "$t" == *"async"* || "$t" == *"queue"* || "$t" == *"worker"* || "$t" == *"outbox"* || "$t" == *"retry"* || "$t" == *"dead-letter"* || "$t" == *"dlq"* ]]; then echo "async"; return; fi
-  if [[ "$t" == *"observability"* || "$t" == *"metrics"* || "$t" == *"tracing"* || "$t" == *"slo"* || "$t" == *"log"* ]]; then echo "observability"; return; fi
+  if [[ "$t" == *"observability"* || "$t" == *"metrics"* || "$t" == *"tracing"* || "$t" == *"slo"* || "$t" == *"logging"* ]]; then echo "observability"; return; fi
   if [[ "$t" == *"ci"* || "$t" == *"pipeline"* || "$t" == *"github actions"* || "$t" == *"codeql"* || "$t" == *"quality gate"* ]]; then echo "ci-cd"; return; fi
   if [[ "$t" == *"postgres"* || "$t" == *"migration"* || "$t" == *"prisma"* || "$t" == *"rls"* || "$t" == *"data"* ]]; then echo "data"; return; fi
   echo "platform"
@@ -249,9 +249,9 @@ apply_if_changed() {
   changed_fields=$((changed_fields + 1))
 }
 
-items_jq='.items[] | select((.content.type // "")=="PullRequest") | [.id, (.content.url // ""), (.milestone.title // ""), (.status // ""), (.priority // ""), (.area // ""), (.type // ""), (.wave // ""), (.risk // "")] | @tsv'
+items_jq='.items[] | select((.content.type // "")=="PullRequest") | [.id, (.content.url // ""), (.milestone.title // ""), (.status // ""), (.priority // ""), (.area // ""), (.type // ""), (.wave // ""), (.risk // "")] | join("\u001f")'
 if [[ -n "$ONLY_PR_NUMBER" ]]; then
-  items_jq=".items[] | select((.content.type // \"\")==\"PullRequest\" and ((.content.url // \"\") | test(\"/pull/${ONLY_PR_NUMBER}$\"))) | [.id, (.content.url // \"\"), (.milestone.title // \"\"), (.status // \"\"), (.priority // \"\"), (.area // \"\"), (.type // \"\"), (.wave // \"\"), (.risk // \"\")] | @tsv"
+  items_jq=".items[] | select((.content.type // \"\")==\"PullRequest\" and ((.content.url // \"\") | test(\"/pull/${ONLY_PR_NUMBER}$\"))) | [.id, (.content.url // \"\"), (.milestone.title // \"\"), (.status // \"\"), (.priority // \"\"), (.area // \"\"), (.type // \"\"), (.wave // \"\"), (.risk // \"\")] | join(\"\\u001f\")"
 fi
 
 updated=0
@@ -259,7 +259,7 @@ skipped=0
 warnings=0
 changed_fields_total=0
 
-while IFS=$'\t' read -r item_id url milestone current_status current_priority current_area current_type current_wave current_risk; do
+while IFS=$'\x1f' read -r item_id url milestone current_status current_priority current_area current_type current_wave current_risk; do
   [[ -z "$url" ]] && continue
 
   repo=$(echo "$url" | awk -F/ '{print $4 "/" $5}')
