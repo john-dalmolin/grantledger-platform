@@ -203,7 +203,7 @@ Deliver structural improvements without blocking feature delivery.
 ## Quality Gates (mandatory per PR)
 
 - [ ] `npm run quality:gate`
-- [ ] `DATABASE_URL=postgresql://grantledger:grantledger@localhost:5432/grantledger RUN_PG_TESTS=1 npm run test:pg` (or CI evidence)
+- [ ] `DATABASE_URL=postgresql://grantledger_app:grantledger_app@localhost:5432/grantledger_rls npm run test:pg` (or CI evidence)
 - [ ] `Architectural scope respected (no mixed feature work)`
 
 ## Done Criteria for ARCH-000

@@ -13,7 +13,7 @@
 
 ## Required Gates (local and CI)
 - `npm run quality:gate`
-- `DATABASE_URL=postgresql://grantledger:grantledger@localhost:5432/grantledger npm run test:pg` (CI mandatory)
+- `DATABASE_URL=postgresql://grantledger_app:grantledger_app@localhost:5432/grantledger_rls npm run test:pg` (CI mandatory)
 - Security workflow should be green or explicitly triaged in PR risks.
 
 ## Branch Protection Baseline

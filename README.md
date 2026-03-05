@@ -159,6 +159,16 @@ npm ci
 npm run quality:gate
 ```
 
+### Postgres integration checks
+
+```bash
+npm run db:up
+DATABASE_URL='postgresql://grantledger_app:grantledger_app@localhost:5432/grantledger_rls' npm run db:migrate
+DATABASE_URL='postgresql://grantledger_app:grantledger_app@localhost:5432/grantledger_rls' npm run test:pg
+```
+
+If your local `grantledger-postgres` volume already exists, recreate it once to apply init scripts from `db/init`.
+
 ## Testing Strategy
 
 Current test scope is focused on business-critical behavior:

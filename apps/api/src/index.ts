@@ -10,6 +10,7 @@ export * from "./http/errors.js";
 export * from "./http/headers.js";
 export * from "./http/types.js";
 export * from "./http/validation.js";
+export * from "./handlers/webhook.js";
 
 validateApiRuntimeConfig();
 

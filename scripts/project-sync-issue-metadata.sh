@@ -6,7 +6,7 @@ OWNER="${OWNER:-@me}"
 LIMIT="${LIMIT:-200}"
 DRY_RUN="${DRY_RUN:-0}"
 ONLY_OPEN="${ONLY_OPEN:-0}"      # 1 = processa só issues OPEN
-ONLY_WAVE="${ONLY_WAVE:-5}"       # ex.: "Wave 5"     # ex.: "Wave 5"
+ONLY_WAVE="${ONLY_WAVE:-}"        # ex.: "Wave 5"; vazio = todas as waves
 ONLY_ISSUE_NUMBER="${1:-}"       # opcional: processa só 1 issue
 
 need() {
@@ -147,7 +147,7 @@ infer_area_from_title() {
   if [[ "$t" == *"payment"* || "$t" == *"stripe"* || "$t" == *"webhook"* || "$t" == *"checkout"* ]]; then echo "payments"; return; fi
   if [[ "$t" == *"entitlement"* ]]; then echo "entitlements"; return; fi
   if [[ "$t" == *"async"* || "$t" == *"queue"* || "$t" == *"worker"* || "$t" == *"outbox"* || "$t" == *"retry"* || "$t" == *"dead-letter"* || "$t" == *"dlq"* ]]; then echo "async"; return; fi
-  if [[ "$t" == *"observability"* || "$t" == *"metrics"* || "$t" == *"tracing"* || "$t" == *"slo"* || "$t" == *"log"* ]]; then echo "observability"; return; fi
+  if [[ "$t" == *"observability"* || "$t" == *"metrics"* || "$t" == *"tracing"* || "$t" == *"slo"* || "$t" == *"logging"* ]]; then echo "observability"; return; fi
   if [[ "$t" == *"ci"* || "$t" == *"pipeline"* || "$t" == *"github actions"* || "$t" == *"codeql"* || "$t" == *"quality gate"* ]]; then echo "ci-cd"; return; fi
   if [[ "$t" == *"postgres"* || "$t" == *"migration"* || "$t" == *"prisma"* || "$t" == *"rls"* || "$t" == *"data"* ]]; then echo "data"; return; fi
   echo "platform"
