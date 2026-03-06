@@ -3,7 +3,7 @@ set -euo pipefail
 
 REPO="${REPO:-gabedalmolin/grantledger-platform}"
 PROJECT_NUMBER="${PROJECT_NUMBER:-6}"
-PROJECT_OWNER="${PROJECT_OWNER:-john-dalmolin}"
+PROJECT_OWNER="${PROJECT_OWNER:-@me}"
 BASE_BRANCH="${BASE_BRANCH:-main}"
 DEFAULT_LABEL="${DEFAULT_LABEL:-Architecture Hardening}"
 RUN_GATES=1

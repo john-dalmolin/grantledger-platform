@@ -3,7 +3,7 @@ set -euo pipefail
 
 REPO="${REPO:-gabedalmolin/grantledger-platform}"
 PROJECT_NUMBER="${PROJECT_NUMBER:-6}"
-PROJECT_OWNER="${PROJECT_OWNER:-john-dalmolin}"
+PROJECT_OWNER="${PROJECT_OWNER:-@me}"
 BASE_BRANCH="${BASE_BRANCH:-main}"
 MERGE_METHOD="${MERGE_METHOD:-squash}" # squash|merge|rebase|none
 WATCH_CHECKS=1
@@ -31,7 +31,7 @@ Optional:
   --issue <number>             Issue number (auto-detected from "Closes #N" when omitted)
   --repo <slug>                Repository slug (default: gabedalmolin/grantledger-platform)
   --project <number>           Project number (default: 6)
-  --owner <owner>              Project owner (default: john-dalmolin, fallback @me)
+  --owner <owner>              Project owner (default: @me)
   --base <branch>              Base branch to sync locally (default: main)
   --merge-method <value>       squash|merge|rebase|none (default: squash)
   --no-watch-checks            Skip waiting for PR checks
