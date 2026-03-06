@@ -12,10 +12,10 @@ Required:
 
 Optional (defaults):
   --repo <slug>        gabedalmolin/grantledger-platform
-  --owner <owner>      john-dalmolin
+  --owner <owner>      @me
   --project <number>   6
   --milestone <name>   Architecture Improve
-  --assignee <login>   john-dalmolin
+  --assignee <login>   authenticated GitHub user
   --label <name>       Architecture Hardening
   --status <value>     Review
   --priority <value>   P1
@@ -118,10 +118,10 @@ project_add_item() {
 }
 
 REPO="gabedalmolin/grantledger-platform"
-OWNER="john-dalmolin"
+OWNER="@me"
 PROJECT_NUMBER="6"
 MILESTONE="Architecture Improve"
-ASSIGNEE="john-dalmolin"
+ASSIGNEE=""
 LABEL="Architecture Hardening"
 STATUS_VALUE="Review"
 PRIORITY_VALUE="P1"
@@ -208,6 +208,11 @@ done
 for cmd in gh jq rg tr mktemp; do
   command -v "$cmd" >/dev/null 2>&1 || fail "Required command not found: $cmd"
 done
+
+if [ -z "$ASSIGNEE" ]; then
+  ASSIGNEE=$(gh api user -q .login)
+  [ -n "$ASSIGNEE" ] || fail "Could not resolve authenticated GitHub user login"
+fi
 
 PR_URL="https://github.com/${REPO}/pull/${PR_NUMBER}"
 
