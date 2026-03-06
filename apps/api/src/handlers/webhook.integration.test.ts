@@ -2,12 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import {
   InvalidWebhookSignatureError,
+  createInMemoryAsyncIdempotencyStore,
   type CanonicalPaymentEventPublisher,
   type PaymentWebhookProvider,
   type WebhookAuditStore,
-  type WebhookDedupStore,
 } from "@grantledger/application";
-import type { PaymentProviderName } from "@grantledger/contracts";
+import type { CanonicalPaymentEvent } from "@grantledger/contracts";
 import type { Headers } from "../http/types.js";
 import { handleProviderWebhook, type WebhookHandlerDeps } from "./webhook.js";
 
@@ -44,21 +44,6 @@ class SignatureFailureProvider implements PaymentWebhookProvider {
   }
 }
 
-class InMemoryDedupStore implements WebhookDedupStore {
-  private readonly keys = new Set<string>();
-
-  async has(provider: PaymentProviderName, eventId: string): Promise<boolean> {
-    return this.keys.has(`${provider}:${eventId}`);
-  }
-
-  async markProcessed(
-    provider: PaymentProviderName,
-    eventId: string,
-  ): Promise<void> {
-    this.keys.add(`${provider}:${eventId}`);
-  }
-}
-
 class NoopAuditStore implements WebhookAuditStore {
   async saveRaw(): Promise<void> { }
 }
@@ -87,7 +72,8 @@ function buildDeps(
   provider: PaymentWebhookProvider,
 ): WebhookHandlerDeps {
   return {
-    dedupStore: new InMemoryDedupStore(),
+    idempotencyStore:
+      createInMemoryAsyncIdempotencyStore<CanonicalPaymentEvent>(),
     auditStore: new NoopAuditStore(),
     eventPublisher: new NoopPublisher(),
     providerRegistry: {

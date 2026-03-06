@@ -11,8 +11,8 @@ import {
   type CanonicalPaymentEventPublisher,
   type PaymentWebhookProvider,
   type WebhookAuditStore,
-  type WebhookDedupStore,
 } from "./payment-webhook.js";
+import { createInMemoryAsyncIdempotencyStore } from "./idempotency.js";
 
 class StubProvider implements PaymentWebhookProvider {
   readonly provider: PaymentProviderName = "stripe";
@@ -47,18 +47,6 @@ class UnknownEventProvider implements PaymentWebhookProvider {
       eventId: "evt_unknown_1",
       providerEventType: "invoice.voided",
     });
-  }
-}
-
-class InMemoryDedupStore implements WebhookDedupStore {
-  private readonly set = new Set<string>();
-
-  async has(provider: PaymentProviderName, eventId: string): Promise<boolean> {
-    return this.set.has(`${provider}:${eventId}`);
-  }
-
-  async markProcessed(provider: PaymentProviderName, eventId: string): Promise<void> {
-    this.set.add(`${provider}:${eventId}`);
   }
 }
 
@@ -105,7 +93,8 @@ describe("payment webhook orchestration", () => {
 
     const deps = {
       provider: new StubProvider(),
-      dedupStore: new InMemoryDedupStore(),
+      idempotencyStore:
+        createInMemoryAsyncIdempotencyStore<CanonicalPaymentEvent>(),
       auditStore,
       eventPublisher: publisher,
     };
@@ -129,7 +118,8 @@ describe("payment webhook orchestration", () => {
 
     const deps = {
       provider: new InvalidSignatureProvider(),
-      dedupStore: new InMemoryDedupStore(),
+      idempotencyStore:
+        createInMemoryAsyncIdempotencyStore<CanonicalPaymentEvent>(),
       auditStore,
       eventPublisher: new InMemoryPublisher(),
     };
@@ -148,7 +138,8 @@ describe("payment webhook orchestration", () => {
 
     const deps = {
       provider: new UnknownEventProvider(),
-      dedupStore: new InMemoryDedupStore(),
+      idempotencyStore:
+        createInMemoryAsyncIdempotencyStore<CanonicalPaymentEvent>(),
       auditStore,
       eventPublisher: new InMemoryPublisher(),
     };

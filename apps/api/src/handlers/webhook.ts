@@ -2,13 +2,20 @@ import {
   BadRequestError,
   InvalidWebhookSignatureError,
   processProviderWebhook,
+  createInMemoryAsyncIdempotencyStore,
+  type AsyncIdempotencyStore,
   type CanonicalPaymentEventPublisher,
   type PaymentWebhookProvider,
   type WebhookAuditStore,
-  type WebhookDedupStore,
 } from "@grantledger/application";
 import {
+  createPostgresPool,
+  createPostgresWebhookAuditStore,
+  createPostgresWebhookIdempotencyStore,
+} from "@grantledger/infra-postgres";
+import {
   paymentWebhookEnvelopeSchema,
+  type CanonicalPaymentEvent,
   type PaymentProviderName,
 } from "@grantledger/contracts";
 import { emitStructuredLog } from "@grantledger/shared";
@@ -18,21 +25,6 @@ import { toApiErrorResponse } from "../http/errors.js";
 import { getHeader } from "../http/headers.js";
 import type { ApiResponse, Headers } from "../http/types.js";
 import { parseOrThrowBadRequest } from "../http/validation.js";
-
-class InMemoryWebhookDedupStore implements WebhookDedupStore {
-  private readonly keys = new Set<string>();
-
-  async has(provider: PaymentProviderName, eventId: string): Promise<boolean> {
-    return this.keys.has(`${provider}:${eventId}`);
-  }
-
-  async markProcessed(
-    provider: PaymentProviderName,
-    eventId: string,
-  ): Promise<void> {
-    this.keys.add(`${provider}:${eventId}`);
-  }
-}
 
 class StructuredLogWebhookAuditStore implements WebhookAuditStore {
   async saveRaw(input: {
@@ -73,18 +65,31 @@ class StructuredLogCanonicalEventPublisher
 }
 
 export interface WebhookHandlerDeps {
-  dedupStore: WebhookDedupStore;
+  idempotencyStore: AsyncIdempotencyStore<CanonicalPaymentEvent>;
   auditStore: WebhookAuditStore;
   eventPublisher: CanonicalPaymentEventPublisher;
   providerRegistry?: Partial<Record<PaymentProviderName, PaymentWebhookProvider>>;
   stripeWebhookSecret?: string;
 }
 
-const defaultWebhookHandlerDeps: WebhookHandlerDeps = {
-  dedupStore: new InMemoryWebhookDedupStore(),
-  auditStore: new StructuredLogWebhookAuditStore(),
-  eventPublisher: new StructuredLogCanonicalEventPublisher(),
-};
+const defaultWebhookHandlerDeps: WebhookHandlerDeps = (() => {
+  if (process.env.PERSISTENCE_DRIVER === "postgres") {
+    const pool = createPostgresPool();
+
+    return {
+      idempotencyStore: createPostgresWebhookIdempotencyStore(pool),
+      auditStore: createPostgresWebhookAuditStore(pool),
+      eventPublisher: new StructuredLogCanonicalEventPublisher(),
+    };
+  }
+
+  return {
+    idempotencyStore:
+      createInMemoryAsyncIdempotencyStore<CanonicalPaymentEvent>(),
+    auditStore: new StructuredLogWebhookAuditStore(),
+    eventPublisher: new StructuredLogCanonicalEventPublisher(),
+  };
+})();
 
 function resolveProvider(
   providerName: PaymentProviderName,
@@ -96,7 +101,9 @@ function resolveProvider(
   }
 
   if (providerName === "stripe") {
-    const secret = (deps.stripeWebhookSecret ?? process.env.STRIPE_WEBHOOK_SECRET)?.trim();
+    const secret = (
+      deps.stripeWebhookSecret ?? process.env.STRIPE_WEBHOOK_SECRET
+    )?.trim();
     if (!secret) {
       throw new Error(
         "STRIPE_WEBHOOK_SECRET is required to process Stripe webhooks",
@@ -105,7 +112,7 @@ function resolveProvider(
     return new StripeWebhookProvider(secret);
   }
 
-  throw new BadRequestError(`Unsupported webhook provider: {providerName}`);
+  throw new BadRequestError(`Unsupported webhook provider: ${providerName}`);
 }
 
 function mapWebhookError(error: unknown): unknown {
@@ -136,7 +143,7 @@ export async function handleProviderWebhook(
     const result = await processProviderWebhook(
       {
         provider,
-        dedupStore: deps.dedupStore,
+        idempotencyStore: deps.idempotencyStore,
         auditStore: deps.auditStore,
         eventPublisher: deps.eventPublisher,
       },
