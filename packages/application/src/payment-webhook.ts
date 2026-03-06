@@ -3,7 +3,6 @@ import {
   CanonicalPaymentEvent,
   PaymentWebhookProcessResult,
   PaymentWebhookEnvelope,
-  IdempotencyRecord,
 } from "@grantledger/contracts";
 import {
   AsyncIdempotencyStore,
@@ -43,11 +42,6 @@ export interface PaymentWebhookProvider {
   }): Promise<CanonicalPaymentEvent>;
 }
 
-export interface WebhookDedupStore {
-  has(provider: PaymentProviderName, eventId: string): Promise<boolean>;
-  markProcessed(provider: PaymentProviderName, eventId: string): Promise<void>;
-}
-
 export interface WebhookAuditStore {
   saveRaw(input: {
     provider: PaymentProviderName;
@@ -67,37 +61,9 @@ export interface CanonicalPaymentEventPublisher {
 
 export interface PaymentWebhookDeps {
   provider: PaymentWebhookProvider;
-  dedupStore: WebhookDedupStore;
+  idempotencyStore: AsyncIdempotencyStore<CanonicalPaymentEvent>;
   auditStore: WebhookAuditStore;
   eventPublisher: CanonicalPaymentEventPublisher;
-}
-
-function toAsyncStore(
-  dedupStore: WebhookDedupStore,
-): AsyncIdempotencyStore<CanonicalPaymentEvent> {
-  return {
-    async get(
-      scope: string,
-      key: string,
-    ): Promise<IdempotencyRecord<CanonicalPaymentEvent> | null> {
-      const [provider] = scope.split(":") as [PaymentProviderName, string?];
-      const alreadyProcessed = await dedupStore.has(provider, key);
-      if (!alreadyProcessed) return null;
-
-      return {
-        key,
-        payloadHash: "null",
-        status: "completed",
-        response: {} as CanonicalPaymentEvent,
-        createdAt: "1970-01-01T00:00:00Z",
-        updatedAt: "1970-01-01T00:00:00Z",
-      };
-    },
-    async set(scope: string, key: string): Promise<void> {
-      const [provider] = scope.split(":") as [PaymentProviderName, string?];
-      await dedupStore.markProcessed(provider, key);
-    },
-  };
 }
 
 export async function processProviderWebhook(
@@ -117,7 +83,7 @@ export async function processProviderWebhook(
       scope,
       key: event.eventId,
       payload: null,
-      store: toAsyncStore(deps.dedupStore),
+      store: deps.idempotencyStore,
       execute: async () => {
         await deps.eventPublisher.publish(event);
         return event;

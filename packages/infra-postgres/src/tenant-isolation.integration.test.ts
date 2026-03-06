@@ -1,6 +1,4 @@
 import { randomUUID } from "node:crypto";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import type { IdempotencyRecord, Subscription } from "@grantledger/contracts";
 import type { Pool } from "pg";
@@ -9,6 +7,7 @@ import {
   createPostgresPool,
   createPostgresSubscriptionRepository,
 } from "./index.js";
+import { applyPostgresTestMigrations } from "./test-migrations.js";
 
 const shouldRun =
   process.env.RUN_PG_TESTS === "1" && Boolean(process.env.DATABASE_URL);
@@ -19,11 +18,7 @@ describePg("postgres tenant isolation", () => {
 
   beforeAll(async () => {
     pool = createPostgresPool();
-    const migrationSql = readFileSync(
-      resolve(process.cwd(), "db/migrations/0001_arch_015_core_tables.sql"),
-      "utf8",
-    );
-    await pool.query(migrationSql);
+    await applyPostgresTestMigrations(pool);
   });
 
   afterAll(async () => {

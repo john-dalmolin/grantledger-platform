@@ -1,10 +1,9 @@
 import { randomUUID } from "node:crypto";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { IdempotencyRecord } from "@grantledger/contracts";
 import type { Pool } from "pg";
 import { createPostgresAsyncIdempotencyStore, createPostgresPool } from "./index.js";
+import { applyPostgresTestMigrations } from "./test-migrations.js";
 
 const shouldRun =
   process.env.RUN_PG_TESTS === "1" && Boolean(process.env.DATABASE_URL);
@@ -23,24 +22,12 @@ function beginOrThrow<TResponse>(
   return store.begin;
 }
 
-async function applyMigrations(pool: Pool): Promise<void> {
-  const migrations = [
-    "db/migrations/0001_arch_015_core_tables.sql",
-    "db/migrations/0002_arch_016_worker_lease.sql",
-  ];
-
-  for (const migrationPath of migrations) {
-    const sql = readFileSync(resolve(process.cwd(), migrationPath), "utf8");
-    await pool.query(sql);
-  }
-}
-
 describePg("postgres idempotency store regression", () => {
   let pool: Pool;
 
   beforeAll(async () => {
     pool = createPostgresPool();
-    await applyMigrations(pool);
+    await applyPostgresTestMigrations(pool);
   });
 
   afterAll(async () => {
