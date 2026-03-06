@@ -175,6 +175,17 @@ bash ./scripts/delivery-bootstrap.sh \
 
 Add `--skip-gates` only when quality checks were already executed in the same branch and commit.
 
+### Standard delivery closeout (merge + project done sync)
+
+Use the closeout orchestrator after checks pass to finalize PR/Issue and project status.
+
+```bash
+bash ./scripts/delivery-closeout.sh \
+  --pr <PR_NUMBER>
+```
+
+Use `--issue <ISSUE_NUMBER>` when the PR body does not contain `Closes #N`.
+
 ### Postgres integration checks
 
 ```bash
