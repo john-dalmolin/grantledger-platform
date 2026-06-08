@@ -3,37 +3,13 @@ import {
   startSubscriptionCheckout,
   type PaymentProvider,
 } from "@grantledger/application";
-import {
-  CreateCheckoutSessionInput,
-  CreateCheckoutSessionResult,
-  startCheckoutPayloadSchema,
-} from "@grantledger/contracts";
+import { startCheckoutPayloadSchema } from "@grantledger/contracts";
 
 import { resolveContextFromHeaders } from "./auth.js";
 import { parseOrThrowBadRequest } from "../http/validation.js";
 import type { ApiResponse, Headers } from "../http/types.js";
-import { t, utcNowIso } from "@grantledger/shared";
+import { t } from "@grantledger/shared";
 import { getHeader } from "../http/headers.js";
-
-class DefaultFakePaymentProvider implements PaymentProvider {
-  public readonly name = "fake" as const;
-
-  createCheckoutSession(
-    _input: CreateCheckoutSessionInput,
-  ): CreateCheckoutSessionResult {
-    void _input;
-    const sessionId = `fake_chk_${Date.now()}_${Math.random()
-      .toString(36)
-      .slice(2, 8)}`;
-
-    return {
-      provider: this.name,
-      sessionId,
-      checkoutUrl: `https://pay.local/checkout/${sessionId}`,
-      createdAt: utcNowIso(),
-    };
-  }
-}
 
 export interface StartCheckoutHandlerDeps {
   paymentProvider: PaymentProvider;
@@ -99,10 +75,3 @@ export function createStartCheckoutHandler(
     }
   };
 }
-
-const defaultStartCheckoutHandler = createStartCheckoutHandler({
-  paymentProvider: new DefaultFakePaymentProvider(),
-});
-
-export const handleStartCheckout: StartCheckoutHandler =
-  defaultStartCheckoutHandler;
