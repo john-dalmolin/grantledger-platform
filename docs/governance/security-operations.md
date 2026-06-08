@@ -9,10 +9,13 @@ GrantLedger treats security checks as part of the delivery path, not as a separa
 - `CodeQL`
   - scans the TypeScript codebase for code-level security issues
 - `Container Scan`
-  - scans the API and worker images for `high` and `critical` vulnerabilities
-  - publishes SARIF findings for review and triage
+  - runs separate API and worker image scans with Trivy `v0.71.0`
+  - blocks on fixable `high` and `critical` OS or library vulnerabilities
+  - ignores vulnerabilities without an available fix
+  - always uploads SARIF before enforcing the blocking vulnerability gate
 - `SBOM`
   - generates SPDX JSON artefacts for the API and worker images
+  - does not block on vulnerability findings, while generation or upload failures remain blocking
 
 ## Triage expectations
 
@@ -27,7 +30,7 @@ GrantLedger treats security checks as part of the delivery path, not as a separa
 
 ## Dependency update policy
 
-- Dependabot is enabled for:
+- Dependabot version updates are configured for:
   - npm dependencies
   - GitHub Actions workflows
   - API and worker Docker base images
@@ -53,8 +56,9 @@ GrantLedger treats security checks as part of the delivery path, not as a separa
   - Postgres integration
   - dependency audit
   - CodeQL
-- non-blocking but required as signals and artefacts:
-  - container image scan
+  - API container image scan
+  - worker container image scan
+- non-blocking for vulnerability findings but required as artefacts:
   - SBOM generation
 
 ## Security artefacts
@@ -63,6 +67,19 @@ GrantLedger treats security checks as part of the delivery path, not as a separa
   - API image
   - worker image
 - Keep generated artefacts attached to workflow runs rather than committed to the repository
+
+## Post-merge repository settings checklist
+
+- Enable Dependabot vulnerability alerts
+- Enable Dependabot automated security fixes
+- Require these checks before merging to `main`:
+  - `Dependency Audit`
+  - `Container Scan (api)`
+  - `Container Scan (worker)`
+  - `CodeQL (javascript-typescript)`
+- Configure code scanning protection to block merges on:
+  - CodeQL `high` and `critical` alerts
+  - Trivy `high` and `critical` alerts
 
 ## Operational follow-up
 
