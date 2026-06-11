@@ -29,6 +29,8 @@ FROM node:22.22.3-alpine3.23@sha256:968df39aedcea65eeb078fb336ed7191baf48f972b44
 WORKDIR /app
 ENV NODE_ENV=production
 
+RUN apk add --no-cache --upgrade "libcrypto3>=3.5.7-r0" "libssl3>=3.5.7-r0"
+
 COPY --from=build /app/package.json ./package.json
 COPY --from=production-deps /app/node_modules ./node_modules
 COPY --from=build /app/apps/worker/package.json ./apps/worker/package.json
