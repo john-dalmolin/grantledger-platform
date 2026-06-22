@@ -23,7 +23,7 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Use Node.js 22
         uses: actions/setup-node@v6
@@ -59,7 +59,7 @@ jobs:
             sarif: trivy-worker.sarif
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Build image
         run: docker build -f ${{ matrix.dockerfile }} -t ${{ matrix.image }} .
@@ -113,7 +113,7 @@ jobs:
             artifact: sbom-worker.spdx.json
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Build image
         run: docker build -f ${{ matrix.dockerfile }} -t ${{ matrix.image }} .
@@ -148,7 +148,7 @@ jobs:
         language: [javascript-typescript]
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
