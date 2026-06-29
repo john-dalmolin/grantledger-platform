@@ -1,4 +1,4 @@
-FROM node:22.22.3-alpine3.23@sha256:968df39aedcea65eeb078fb336ed7191baf48f972b4479711397108be0966920 AS build
+FROM node:26.4.0-alpine3.23@sha256:aa0d6534a72362ba0ab3c98b662ed680c32484e0aff8e0ce0888451085796a61 AS build
 WORKDIR /app
 
 COPY package.json package-lock.json tsconfig.json tsconfig.base.json ./
@@ -11,7 +11,7 @@ RUN find apps/worker/dist packages/*/dist -type f \
   \( -name "*.test.js" -o -name "*.spec.js" -o -name "*.d.ts" -o -name "*.tsbuildinfo" -o -name "*.js.map" \) \
   -delete
 
-FROM node:22.22.3-alpine3.23@sha256:968df39aedcea65eeb078fb336ed7191baf48f972b4479711397108be0966920 AS production-deps
+FROM node:26.4.0-alpine3.23@sha256:aa0d6534a72362ba0ab3c98b662ed680c32484e0aff8e0ce0888451085796a61 AS production-deps
 WORKDIR /app
 
 COPY package.json package-lock.json ./
@@ -25,7 +25,7 @@ COPY packages/shared/package.json ./packages/shared/package.json
 RUN npm ci --omit=dev --workspace @grantledger/worker --include-workspace-root=false \
   && rm -f node_modules/.package-lock.json
 
-FROM node:22.22.3-alpine3.23@sha256:968df39aedcea65eeb078fb336ed7191baf48f972b4479711397108be0966920 AS runtime
+FROM node:26.4.0-alpine3.23@sha256:aa0d6534a72362ba0ab3c98b662ed680c32484e0aff8e0ce0888451085796a61 AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 
